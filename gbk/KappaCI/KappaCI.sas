@@ -24,6 +24,7 @@ DEL_TEMP_DATA:   删除中间数据集
 
     /*打开帮助文档*/
     %if %qupcase(%superq(SYSPBUFF)) = %bquote((HELP)) or %qupcase(%superq(SYSPBUFF)) = %bquote(()) %then %do;
+        /*
         %let host = %bquote(192.168.0.199);
         %let help = %bquote(\\&host\统计部\SAS宏\08 FreqStatKit\05 帮助文档\KappaCI\readme.html);
         %if %sysfunc(system(ping &host -n 1 -w 10)) = 0 %then %do;
@@ -37,6 +38,8 @@ DEL_TEMP_DATA:   删除中间数据集
         %else %do;
                 X mshta vbscript:msgbox("帮助文档不在线, 因为无法连接到服务器！ Orz",48,"提示")(window.close);
         %end;
+        */
+        X explorer "https://github.com/Snoopy1866/FreqStatKit/blob/main/docs/KappaCI/readme.md";
         %goto exit;
     %end;
 
