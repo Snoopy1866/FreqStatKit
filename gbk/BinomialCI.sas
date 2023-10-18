@@ -517,6 +517,3 @@ DEL_TEMP_DATA:   删除中间数据集
     %exit:
     %put NOTE: 宏 BinomialCI 已结束运行！;
 %mend;
-
-
-

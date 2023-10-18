@@ -1,23 +1,25 @@
 /*
 ===================================
-Macro Name: KappaCI
-Macro Label: Kappa值及其置信区间
+Macro Name: KappaP
+Macro Label: Kappa 系数的检验P值
 Author: wtwang
-Version Date: 2023-01-10 V1.0
+Version Date: 2023-01-13 V1.0
 ===================================
 */
 
-%macro KappaCI(INDATA, TABLE_DEF, OUTDATA, STAT_NOTE = %str(Kappa系数), WEIGHT = #NULL, KAPPA_TYPE = #SIMPLE, KAPPA_WEIGHT = #AUTO,
-               ALPHA = 0.05, FORMAT = 6.3, PLACEHOLDER = %str(-), DEL_TEMP_DATA = TRUE) /des = "Kappa 系数及其置信区间" parmbuff;
+%macro KappaP(INDATA, TABLE_DEF, OUTDATA, STAT_NOTE = %str(Kappa P值), WEIGHT = #NULL, KAPPA_TYPE = #SIMPLE, KAPPA_WEIGHT = #AUTO,
+              EXACT = FALSE, NULL_KAPPA = #AUTO, SIDES = 2, FORMAT = PVALUE6.3, PLACEHOLDER = %str(-), DEL_TEMP_DATA = TRUE) /des = "Kappa 系数检验的P值" parmbuff;
 /*
 INDATA:          分析数据集名称
 TABLE_DEF:       R*C表的定义
-STAT_NOTE:       统计量的名称, 例如：STAT_NOTE = %str(Kappa系数)
+STAT_NOTE:       统计量的名称, 例如：STAT_NOTE = %str(Kappa P值)
 OUTDATA:         输出数据集名称
 WEIGHT:          权重变量
 KAPPA_TYPE:      Kappa值的类型（简单Kappa, 加权Kappa）
 KAPPA_WEIGHT:    Kappa权重的类型（Cicchetti-Allison, Fleiss-Cohen）
-ALPHA:           显著性水平
+EXACT:           是否进行精确检验
+NULL_KAPPA:      零假设下的Kappa系数
+SIDES:           检验类型（1: 单侧检验, 2: 双侧检验）
 PLACEHOLDER:     占位符，当表为空或表过于稀疏时，无法计算Kappa值，输出占位符到数据集中
 DEL_TEMP_DATA:   删除中间数据集
 */
@@ -26,7 +28,7 @@ DEL_TEMP_DATA:   删除中间数据集
     %if %qupcase(%superq(SYSPBUFF)) = %bquote((HELP)) or %qupcase(%superq(SYSPBUFF)) = %bquote(()) %then %do;
         /*
         %let host = %bquote(192.168.0.199);
-        %let help = %bquote(\\&host\统计部\SAS宏\08 FreqStatKit\05 帮助文档\KappaCI\readme.html);
+        %let help = %bquote(\\&host\统计部\SAS宏\08 FreqStatKit\05 帮助文档\KappaP\readme.html);
         %if %sysfunc(system(ping &host -n 1 -w 10)) = 0 %then %do;
             %if %sysfunc(fileexist("&help")) %then %do;
                 X explorer "&help";
@@ -39,7 +41,7 @@ DEL_TEMP_DATA:   删除中间数据集
                 X mshta vbscript:msgbox("帮助文档不在线, 因为无法连接到服务器！ Orz",48,"提示")(window.close);
         %end;
         */
-        X explorer "https://github.com/Snoopy1866/FreqStatKit/blob/main/docs/KappaCI/readme.md";
+        X explorer "https://github.com/Snoopy1866/FreqStatKit/blob/main/docs/KappaP/readme.md";
         %goto exit;
     %end;
 
@@ -51,17 +53,11 @@ DEL_TEMP_DATA:   删除中间数据集
     %let outdata              = %sysfunc(strip(%bquote(&outdata)));
     %let weight               = %upcase(%sysfunc(strip(%bquote(&weight))));
     %let kappa_type           = %upcase(%sysfunc(strip(%bquote(&kappa_type))));
-    %let kappa_weight         = %upcase(%sysfunc(strip(%bquote(&kappa_weight))));;
-    %let alpha                = %upcase(%sysfunc(strip(%bquote(&alpha))));
+    %let kappa_weight         = %upcase(%sysfunc(strip(%bquote(&kappa_weight))));
+    %let exact                = %upcase(%sysfunc(strip(%bquote(&exact))));
+    %let null_kappa           = %upcase(%sysfunc(strip(%bquote(&null_kappa))));
     %let format               = %upcase(%sysfunc(strip(%bquote(&format))));
     %let del_temp_data        = %upcase(%sysfunc(strip(%bquote(&del_temp_data))));
-
-    /*统计量对应的输出格式*/
-    %let GLOBAL_format = 6.3;
-    %let KAPPA_format   = &GLOBAL_format;
-    %let CLM_format    = &GLOBAL_format;
-    %let LCLM_format   = &CLM_format;
-    %let UCLM_format   = &CLM_format;
 
     /*声明局部变量*/
     %local i j;
@@ -253,87 +249,85 @@ DEL_TEMP_DATA:   删除中间数据集
     %end;
 
 
-    /*ALPHA*/
-    %if %superq(alpha) = %bquote() %then %do;
-        %put ERROR: 参数 ALPHA 为空！;
+    /*EXACT*/
+    %if %superq(exact) = %bquote() %then %do;
+        %put ERROR: 参数 EXACT 为空！;
         %goto exit;
     %end;
 
-    %let reg_alpha_id = %sysfunc(prxparse(%bquote(/^0?\.\d+$/)));
-    %if %sysfunc(prxmatch(&reg_alpha_id, %bquote(&alpha))) = 0 %then %do;
-        %put ERROR: 参数 ALPHA 格式不正确！;
+    %if %superq(exact) ^= TRUE and %superq(exact) ^= FALSE %then %do;
+        %put ERROR: 参数 EXACT 必须是 TRUE 或 FALSE！;
         %goto exit;
     %end;
-    %else %do;
-        %if %sysevalf(%bquote(&alpha) <= 0) or %sysevalf(%bquote(&alpha) >= 1) %then %do;
-            %put ERROR: 参数 ALPHA 必须是0和1之间的一个数值！;
-            %goto exit;
+
+
+    /*NULL_KAPPA*/
+    %if %superq(null_kappa) = %bquote() %then %do;
+        %put ERROR: 参数 NULL_KAPPA 为空！;
+        %goto exit;
+    %end;
+
+    %if %bquote(&exact) = TRUE %then %do;
+        %if %superq(null_kappa) ^= #AUTO %then %do;
+            %put WARNING: 精确检验不支持指定零假设下的 Kappa 值，参数 NULL_KAPPA 已被忽略！;
+            %let null_kappa = #AUTO;
         %end;
+    %end;
+    %else %do;
+        %if %superq(null_kappa) = #AUTO %then %do;
+            %let null_kappa = 0;
+        %end;
+        %else %do;
+            %let reg_null_kappa_id = %sysfunc(prxparse(%bquote(/^-?\d+(?:\.\d*)?$/)));
+            %if %sysfunc(prxmatch(&reg_null_kappa_id, %superq(null_kappa))) = 0 %then %do;
+                %put ERROR: 参数 NULL_KAPPA 格式不正确！;
+                %goto exit;
+            %end;
+            %else %do;
+                %if %sysevalf(&null_kappa) < -1 or %sysevalf(&null_kappa) > 1 %then %do;
+                    %put ERROR: 零假设下的 Kappa 值必须在 -1 和 1 之间！;
+                    %goto exit;
+                %end;
+            %end;
+        %end;
+    %end;
+    
+
+
+    /*SIDES*/
+    %if %superq(sides) = %bquote() %then %do;
+        %put ERROR: 参数 SIDES 为空！;
+        %goto exit;
+    %end;
+
+    %if %superq(sides) ^= 1 and %superq(sides) ^= 2 %then %do;
+        %put ERROR: 参数 SIDES 必须是 1（单侧检验） 或 2（双侧检验）！;
+        %goto exit;
     %end;
 
 
     /*FORMAT*/
-    %macro temp_format_update(format_2be_update, format_new); /*更新统计量输出格式的内部宏程序*/
-        %if &format_2be_update = GLOBAL %then %do;
-            %let KAPPA_format = &format_new;
-            %let LCLM_format = &format_new;
-            %let UCLM_format = &format_new;
-        %end;
-        %else %if &format_2be_update = KAPPA %then %do;
-            %let KAPPA_format = &format_new;
-        %end;
-        %else %if &format_2be_update = CLM %then %do;
-            %let LCLM_format = &format_new;
-            %let UCLM_format = &format_new;
-        %end;
-        %else %if &format_2be_update = LCLM %then %do;
-            %let LCLM_format = &format_new;
-        %end;
-        %else %if &format_2be_update = UCLM %then %do;
-            %let UCLM_format = &format_new;
-        %end;
-    %mend;
-
-    %if %superq(format) = %bquote() %then %do;
-        %put ERROR: 参数 FORMAT 为空！;
+    %if %bquote(&format) = %bquote() %then %do;
+        %put ERROR: 试图指定参数 FORMAT 为空！;
         %goto exit;
     %end;
 
-    %let reg_format_unit = %bquote(/(?:#(KAPPA|LCLM|UCLM|CLM)\s*=\s*)?((\$?[A-Za-z_]+(?:\d+[A-Za-z_]+)?)(?:\.|\d+\.\d*)|\$\d+\.|\d+\.\d*)/);
-    %let reg_format_unit_id = %sysfunc(prxparse(&reg_format_unit));
-    %let start = 1;
-    %let stop = %length(%bquote(&format));
-    %let position = 1;
-    %let length = 1;
-    %let i = 1;
-    %syscall prxnext(reg_format_unit_id, start, stop, format, position, length);
-    %do %while(&position > 0);
-        %let format_part_&i = %substr(%bquote(&format), &position, &length);
-        %if %sysfunc(prxmatch(&reg_format_unit_id, %bquote(&&format_part_&i))) %then %do;
-            %let format_index_&i = %sysfunc(prxposn(&reg_format_unit_id, 1, %bquote(&&format_part_&i))); /*第i个修改格式的指标名称*/
-            %let format_&i = %sysfunc(prxposn(&reg_format_unit_id, 2, %bquote(&&format_part_&i))); /*第i个格式名称*/
-            %let fomrat_&i._base = %sysfunc(prxposn(&reg_format_unit_id, 3, %bquote(&&format_part_&i))); /*第i个格式名称的base名称*/
-
-            %if %bquote(&&format_index_&i) = %bquote() %then %do; /*未指定修改格式的统计量名称，默认全局修改*/
-                %let format_index_&i = GLOBAL;
+    %let reg_format = %bquote(/^((\$?[A-Za-z_]+(?:\d+[A-Za-z_]+)?)(?:\.|\d+\.\d*)|\$\d+\.|\d+\.\d*)$/);
+    %let reg_format_id = %sysfunc(prxparse(&reg_format));
+    %if %sysfunc(prxmatch(&reg_format_id, &format)) = 0 %then %do;
+        %put ERROR: 参数 FORMAT 格式不正确！;
+        %goto exit;
+    %end;
+    %else %do;
+        %let format_base = %sysfunc(prxposn(&reg_format_id, 2, &format));
+        %if %bquote(&format_base) ^= %bquote() %then %do;
+            proc sql noprint;
+                select * from DICTIONARY.FORMATS where fmtname = "&format_base" and fmttype = "F";
+            quit;
+            %if &SQLOBS = 0 %then %do;
+                %put ERROR: 输出格式 &format 不存在！;
+                %goto exit;
             %end;
-            %if %bquote(&&fomrat_&i._base) = %bquote() %then %do; /*指定的简单格式，直接修改*/
-                %temp_format_update(&&format_index_&i, &&format_&i);
-            %end;
-            %else %do; /*指定的其他格式，需要进一步判断格式的存在性*/
-                proc sql noprint;
-                    select * from DICTIONARY.FORMATS where fmtname = "&&fomrat_&i._base" and fmttype = "F";
-                quit;
-                %if &SQLOBS = 0 %then %do;
-                    %put ERROR: 为统计量 &&format_index_&i 指定的输出格式 &&format_&i 不存在！;
-                    %goto exit;
-                %end;
-                %else %do;
-                    %temp_format_update(&&format_index_&i, &&format_&i);
-                %end;
-            %end;
-            %syscall prxnext(reg_format_unit_id, start, stop, format, position, length);
-            %let i = %eval(&i + 1);
         %end;
     %end;
 
@@ -456,8 +450,8 @@ DEL_TEMP_DATA:   删除中间数据集
         select count(*) into :freq_all from temp_indata where &table_row_var in (select var from temp_distinct_var) and
                                                               &table_col_var in (select var from temp_distinct_var);
         %if &freq_all = 0 %then %do;
-            %put NOTE: 表为空，未计算 Kappa 值！;
-            %let kappa_and_ci = %superq(placeholder);
+            %put NOTE: 表为空，未对 Kappa 值进行检验！;
+            %let kappap = %superq(placeholder);
             %goto temp_out;
         %end;
     quit;
@@ -465,10 +459,10 @@ DEL_TEMP_DATA:   删除中间数据集
 
     /*6. 显示方阵图形*/
     %if &kappa_type = #SIMPLE %then %do;
-        %put NOTE: 将基于以下表格计算简单 Kappa 系数:;
+        %put NOTE: 将基于以下表格对简单 Kappa 系数进行检验:;
     %end;
     %else %if &kappa_type = #WEIGHTED %then %do;
-        %put NOTE: 将基于以下表格计算加权 Kappa 系数, 注意：行列分类的顺序将影响加权 Kappa 系数的最终计算结果，请确认表格中行列分类的顺序准确无误！;
+        %put NOTE: 将基于以下表格对加权 Kappa 系数进行检验, 注意：行列分类的顺序将影响加权 Kappa 系数的计算结果，进而影响对加权 Kappa 系数进行检验的 P 值，请确认表格中行列分类的顺序准确无误！;
     %end;
 
     %let note_table_line_0 = %bquote(%sysfunc(repeat(%bquote( ), %eval(&len_max - 1))));
@@ -492,10 +486,10 @@ DEL_TEMP_DATA:   删除中间数据集
         %put NOTE- %superq(note_table_line_&i);
     %end;
 
-    /*2*2表的加权Kappa系数与简单Kappa系数结果一致，发出警告信息*/
+    /*2*2表的加权Kappa系数与简单Kappa系数假设检验结果一致，发出警告信息*/
     %if &kappa_type = #WEIGHTED %then %do;
         %if &table_row_level_n = 2 and &table_col_level_n = 2 %then %do;
-            %put WARNING: 加权 Kappa 系数对于 2×2 表的计算结果与简单 Kappa 系数一致！;
+            %put WARNING: 加权 Kappa 系数对于 2×2 表的假设检验结果与简单 Kappa 系数一致！;
             %let kappa_type = #SIMPLE;
         %end;
     %end;
@@ -577,38 +571,92 @@ DEL_TEMP_DATA:   删除中间数据集
     quit;
     
 
-    /*8. 计算 Kappa 值及其置信区间*/
+    /*8. 计算 Kappa 系数假设检验的 P 值*/
     proc freq data = temp_indata_add_level_freq noprint;
-        tables &temp_rown_var*&temp_coln_var /%if &kappa_type = #WEIGHTED %then %do;
-                                                  agree(wt = &kappa_weight)
+        tables &temp_rown_var*&temp_coln_var /%if &kappa_type = #SIMPLE %then %do;
+                                                  %if &exact = FALSE %then %do;
+                                                      agree(nullkappa = &null_kappa)
+                                                  %end;
+                                                  %else %do;
+                                                      agree
+                                                  %end;
                                               %end;
                                               %else %do;
-                                                  agree
-                                              %end; alpha = &alpha norow nocol nopercent;
+                                                  %if &exact = FALSE %then %do;
+                                                      agree(wt = &kappa_weight nullwtkappa = &null_kappa)
+                                                  %end;
+                                                  %else %do;
+                                                      agree(wt = &kappa_weight)
+                                                  %end;
+                                              %end;
+                                              norow nocol nopercent;
+        %if &exact = TRUE %then %do;
+            exact
+        %end;
+        %else %do;
+            test
+        %end;
+        %if &kappa_type = #WEIGHTED %then %do;
+            wtkappa
+        %end;
+        %else %do;
+            kappa
+        %end;
+        ;
         weight &temp_freq_var /zeros;
         output out = temp_out_kappa agree;
     run;
 
 
-    /*9. 提取 Kappa 值及其置信区间*/
+    /*9. 提取 Kappa 系数假设检验的 P 值*/
     proc sql noprint;
-        %if &kappa_type = #WEIGHTED %then %do;
-            select _WTKAP_ format = &KAPPA_format into :KAPPA from temp_out_kappa;
-            select L_WTKAP format = &LCLM_format  into :LCLM  from temp_out_kappa;
-            select U_WTKAP format = &UCLM_format  into :UCLM  from temp_out_kappa;
+        /*获取 Kappa 系数*/
+        %if &kappa_type = #SIMPLE %then %do;
+            select _KAPPA_ format = &format into :KAPPA from temp_out_kappa;
         %end;
         %else %do;
-            select _KAPPA_ format = &KAPPA_format into :KAPPA from temp_out_kappa;
-            select L_KAPPA format = &LCLM_format  into :LCLM  from temp_out_kappa;
-            select U_KAPPA format = &UCLM_format  into :UCLM  from temp_out_kappa;
+            select _WTKAP_ format = &format into :KAPPA from temp_out_kappa;
         %end;
 
         %if &KAPPA = %bquote(.) %then %do;
-            %put NOTE: 表过于稀疏，未计算 Kappa 系数！;
-            %let kappa_and_ci = %superq(placeholder);
+            %put NOTE: 表过于稀疏，未对 Kappa 系数进行检验！;
+            %let kappap = %superq(placeholder);
         %end;
         %else %do;
-            %let kappa_and_ci = %bquote(%sysfunc(strip(&KAPPA))(%sysfunc(strip(&LCLM)), %sysfunc(strip(&UCLM))));
+            /*在参数 SIDES = 1 的情况下，比较样本 Kappa 系数与零假设的 Kappa 系数，决定进行左侧或右侧检验*/
+            %if &sides = 1 %then %do;
+                %if %sysevalf(&KAPPA <= &null_kappa) %then %do;
+                    %let test_side = L;
+                %end;
+                %else %do;
+                    %let test_side = R;
+                %end;
+            %end;
+            /*在参数 SIDES = 2 的情况下，进行双侧检验*/
+            %else %do;
+                %let test_side = 2;
+            %end;
+
+            /*对简单 or 加权 Kappa 系数进行检验*/
+            %if &kappa_type = #SIMPLE %then %do;
+                %let kappa_method = KAPPA;
+            %end;
+            %else %do;
+                %let kappa_method = WTKAP;
+            %end;
+
+            /*是否进行精确检验*/
+            %if &exact = FALSE %then %do;
+                %let test_type = %bquote();
+            %end;
+            %else %do;
+                %let test_type = X;
+            %end;
+
+            /*Kappa P 值的变量名*/
+            %let kappap_var = %substr(&test_type.P&test_side._&kappa_method, 1, 8);
+            
+            select &kappap_var format = &format into :KAPPAP from temp_out_kappa;
         %end;
     quit;
 
@@ -617,7 +665,7 @@ DEL_TEMP_DATA:   删除中间数据集
     %temp_out:
     proc sql noprint;
         create table temp_out (item char(200), value char(200));
-        insert into temp_out values("&stat_note", "&kappa_and_ci");
+        insert into temp_out values("&stat_note", "&kappap");
     quit;
     
 
@@ -647,14 +695,6 @@ DEL_TEMP_DATA:   删除中间数据集
         quit;
     %end;
 
-    /*删除临时宏*/
-    proc catalog catalog = work.sasmacr;
-        delete temp_format_update.macro;
-    quit;
-
     %exit:
-    %put NOTE: 宏 KappaCI 已结束运行！;
+    %put NOTE: 宏 KappaP 已结束运行！;
 %mend;
-
-
-
