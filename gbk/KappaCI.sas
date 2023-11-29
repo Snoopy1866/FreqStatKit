@@ -603,7 +603,7 @@ DEL_TEMP_DATA:   删除中间数据集
             select U_KAPPA format = &UCLM_format  into :UCLM  from temp_out_kappa;
         %end;
 
-        %if &KAPPA = %bquote(.) %then %do;
+        %if %sysevalf(&KAPPA = %bquote(.)) %then %do;
             %put NOTE: 表过于稀疏，未计算 Kappa 系数！;
             %let kappa_and_ci = %superq(placeholder);
         %end;
