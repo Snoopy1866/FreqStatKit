@@ -4,6 +4,7 @@ Macro Name: KappaCI
 Macro Label: Kappa值及其置信区间
 Author: wtwang
 Version Date: 2023-01-10 V1.0
+              2023-12-06 V1.1
 ===================================
 */
 
@@ -592,23 +593,29 @@ DEL_TEMP_DATA:   删除中间数据集
 
     /*9. 提取 Kappa 值及其置信区间*/
     proc sql noprint;
-        %if &kappa_type = #WEIGHTED %then %do;
-            select _WTKAP_ format = &KAPPA_format into :KAPPA from temp_out_kappa;
-            select L_WTKAP format = &LCLM_format  into :LCLM  from temp_out_kappa;
-            select U_WTKAP format = &UCLM_format  into :UCLM  from temp_out_kappa;
-        %end;
-        %else %do;
-            select _KAPPA_ format = &KAPPA_format into :KAPPA from temp_out_kappa;
-            select L_KAPPA format = &LCLM_format  into :LCLM  from temp_out_kappa;
-            select U_KAPPA format = &UCLM_format  into :UCLM  from temp_out_kappa;
-        %end;
-
-        %if %sysevalf(&KAPPA = %bquote(.)) %then %do;
-            %put NOTE: 表过于稀疏，未计算 Kappa 系数！;
+        select * from DICTIONARY.TABLES where libname = "WORK" and memname = "TEMP_OUT_KAPPA";
+        %if &SQLOBS = 0 %then %do;
             %let kappa_and_ci = %superq(placeholder);
         %end;
         %else %do;
-            %let kappa_and_ci = %bquote(%sysfunc(strip(&KAPPA))(%sysfunc(strip(&LCLM)), %sysfunc(strip(&UCLM))));
+            %if &kappa_type = #WEIGHTED %then %do;
+                select _WTKAP_ format = &KAPPA_format into :KAPPA from temp_out_kappa;
+                select L_WTKAP format = &LCLM_format  into :LCLM  from temp_out_kappa;
+                select U_WTKAP format = &UCLM_format  into :UCLM  from temp_out_kappa;
+            %end;
+            %else %do;
+                select _KAPPA_ format = &KAPPA_format into :KAPPA from temp_out_kappa;
+                select L_KAPPA format = &LCLM_format  into :LCLM  from temp_out_kappa;
+                select U_KAPPA format = &UCLM_format  into :UCLM  from temp_out_kappa;
+            %end;
+
+            %if %sysevalf(&KAPPA = %bquote(.)) %then %do;
+                %put NOTE: 表过于稀疏，未计算 Kappa 系数！;
+                %let kappa_and_ci = %superq(placeholder);
+            %end;
+            %else %do;
+                %let kappa_and_ci = %bquote(%sysfunc(strip(&KAPPA))(%sysfunc(strip(&LCLM)), %sysfunc(strip(&UCLM))));
+            %end;
         %end;
     quit;
 

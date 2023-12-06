@@ -4,6 +4,7 @@ Macro Name: KappaP
 Macro Label: Kappa 系数的检验P值
 Author: wtwang
 Version Date: 2023-01-13 V1.0
+              2023-12-06 V1.1
 ===================================
 */
 
@@ -610,53 +611,59 @@ DEL_TEMP_DATA:   删除中间数据集
 
     /*9. 提取 Kappa 系数假设检验的 P 值*/
     proc sql noprint;
-        /*获取 Kappa 系数*/
-        %if &kappa_type = #SIMPLE %then %do;
-            select _KAPPA_ format = &format into :KAPPA from temp_out_kappa;
-        %end;
-        %else %do;
-            select _WTKAP_ format = &format into :KAPPA from temp_out_kappa;
-        %end;
-
-        %if &KAPPA = %bquote(.) %then %do;
-            %put NOTE: 表过于稀疏，未对 Kappa 系数进行检验！;
+        select * from DICTIONARY.TABLES where libname = "WORK" and memname = "TEMP_OUT_KAPPA";
+        %if &SQLOBS = 0 %then %do;
             %let kappap = %superq(placeholder);
         %end;
         %else %do;
-            /*在参数 SIDES = 1 的情况下，比较样本 Kappa 系数与零假设的 Kappa 系数，决定进行左侧或右侧检验*/
-            %if &sides = 1 %then %do;
-                %if %sysevalf(&KAPPA <= &null_kappa) %then %do;
-                    %let test_side = L;
+            /*获取 Kappa 系数*/
+            %if &kappa_type = #SIMPLE %then %do;
+                select _KAPPA_ format = &format into :KAPPA from temp_out_kappa;
+            %end;
+            %else %do;
+                select _WTKAP_ format = &format into :KAPPA from temp_out_kappa;
+            %end;
+
+            %if &KAPPA = %bquote(.) %then %do;
+                %put NOTE: 表过于稀疏，未对 Kappa 系数进行检验！;
+                %let kappap = %superq(placeholder);
+            %end;
+            %else %do;
+                /*在参数 SIDES = 1 的情况下，比较样本 Kappa 系数与零假设的 Kappa 系数，决定进行左侧或右侧检验*/
+                %if &sides = 1 %then %do;
+                    %if %sysevalf(&KAPPA <= &null_kappa) %then %do;
+                        %let test_side = L;
+                    %end;
+                    %else %do;
+                        %let test_side = R;
+                    %end;
+                %end;
+                /*在参数 SIDES = 2 的情况下，进行双侧检验*/
+                %else %do;
+                    %let test_side = 2;
+                %end;
+
+                /*对简单 or 加权 Kappa 系数进行检验*/
+                %if &kappa_type = #SIMPLE %then %do;
+                    %let kappa_method = KAPPA;
                 %end;
                 %else %do;
-                    %let test_side = R;
+                    %let kappa_method = WTKAP;
                 %end;
-            %end;
-            /*在参数 SIDES = 2 的情况下，进行双侧检验*/
-            %else %do;
-                %let test_side = 2;
-            %end;
 
-            /*对简单 or 加权 Kappa 系数进行检验*/
-            %if &kappa_type = #SIMPLE %then %do;
-                %let kappa_method = KAPPA;
-            %end;
-            %else %do;
-                %let kappa_method = WTKAP;
-            %end;
+                /*是否进行精确检验*/
+                %if &exact = FALSE %then %do;
+                    %let test_type = %bquote();
+                %end;
+                %else %do;
+                    %let test_type = X;
+                %end;
 
-            /*是否进行精确检验*/
-            %if &exact = FALSE %then %do;
-                %let test_type = %bquote();
+                /*Kappa P 值的变量名*/
+                %let kappap_var = %substr(&test_type.P&test_side._&kappa_method, 1, 8);
+                
+                select &kappap_var format = &format into :KAPPAP from temp_out_kappa;
             %end;
-            %else %do;
-                %let test_type = X;
-            %end;
-
-            /*Kappa P 值的变量名*/
-            %let kappap_var = %substr(&test_type.P&test_side._&kappa_method, 1, 8);
-            
-            select &kappap_var format = &format into :KAPPAP from temp_out_kappa;
         %end;
     quit;
 
