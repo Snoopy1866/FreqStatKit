@@ -1,6 +1,6 @@
 ## 简介
 
-适用于 IVD 的诊断指标计算的 SAS 宏程序。
+用于频数统计的 SAS 宏程序。
 
 支持以下编码环境：
 
@@ -30,6 +30,7 @@
 | Binomial           | 二项分布率及其 CI   |
 | KappaCI            | Kappa 系数及其 CI   |
 | KappaP             | Kappa 系数检验 P 值 |
+| RiskDiff           | 率差及其 CI         |
 
 **Example** :
 
@@ -48,8 +49,11 @@ CALL = BinomialCI
 - [BinomialCI](./docs/BinomialCI/readme.md)
 - [KappaCI](./docs/KappaCI/readme.md)
 - [KappaP](./docs/KappaP/readme.md)
+- [RiskDiff](./docs/RiskDiff/readme.md)
 
-**Caution** : 若指定的参数不受子程序支持，则该参数将被忽略。
+> [!WARNING]
+>
+> - 若指定的参数不受子程序支持，则该参数将被忽略。
 
 ## 调用示例
 
@@ -79,4 +83,11 @@ CALL = BinomialCI
              indata = adeff(where = (CMPTFL = "Y")),
              table_def = TSTP("阳性", "阴性", "无效")*TSTC("阳性", "阴性", "无效"),
              outdata = t3);
+
+%FreqStatKit(call = RiskDiff,
+             indata = analysis,
+             group = arm("试验组" - "对照组"),
+             response = nyha("是"),
+             stat_note = '率差(95%CI)',
+             outdata = t4);
 ```
