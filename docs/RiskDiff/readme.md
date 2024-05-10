@@ -45,6 +45,8 @@ _dataset-options_: 数据集选项，兼容 SAS 系统支持的所有数据集�
 - INDATA = ADAM.ADSL(where = (FAS = "Y"))
 ```
 
+[Example](#一般用法)
+
 ---
 
 ### GROUP
@@ -67,6 +69,8 @@ GROUP = arm("试验组" - "对照组")
 > - 参数 GROUP 不允许指定参数 INDATA 数据集中不存在的变量
 > - 参数 GROUP 不允许指定数值型变量
 
+[Example](#一般用法)
+
 ---
 
 ### RESPONSE
@@ -88,6 +92,8 @@ RESPONSE = cmyn("是")
 > - 参数 RESPONSE 不允许指定参数 INDATA 数据集中不存在的变量
 > - 参数 RESPONSE 不允许指定数值型变量
 
+[Example](#一般用法)
+
 ---
 
 ### STAT_NOTE
@@ -98,7 +104,7 @@ RESPONSE = cmyn("是")
 
 `STAT_NOTE` 指定的展示名称将输出至参数 `OUTDATA` 指定的数据集中。
 
-> [!CAUTION]
+> [!IMPORTANT]
 >
 > 如果指定的 `STAT_NOTE` 中含有不匹配的引号，例如，需要指定 `STAT_NOTE` 为一个单引号，可以选择以下传参方式：
 >
@@ -117,6 +123,8 @@ RESPONSE = cmyn("是")
 ```sas
 STAT_NOTE = '手术成功率差值(95%CI)'
 ```
+
+[Example](#一般用法)
 
 ---
 
@@ -186,6 +194,8 @@ OUTDATA = T1
 OUTDATA = T1(KEEP = ITEM P1 P2 VALUE)
 ```
 
+[Example](#指定需要保留的变量)
+
 ---
 
 ### WEIGHT
@@ -208,6 +218,8 @@ OUTDATA = T1(KEEP = ITEM P1 P2 VALUE)
 ```sas
 WEIGHT = FREQ
 ```
+
+[Example](#指定权重变量)
 
 ---
 
@@ -265,6 +277,8 @@ WEIGHT = FREQ
 METHOD = NEWCOMBE(CORRECT)
 ```
 
+[Example](#指定计算率差置信区间的方法)
+
 ---
 
 ### ALPHA
@@ -289,6 +303,8 @@ METHOD = NEWCOMBE(CORRECT)
 ALPHA = 0.10
 ```
 
+[Example](#指定显著性水平)
+
 ---
 
 ### FORMAT
@@ -301,11 +317,13 @@ ALPHA = 0.10
 
 默认情况下，率差及其置信区间的输出格式均为 `PERCENTN9.2`。
 
-**Example** :
+**Usage** :
 
 ```sas
 FORMAT = srate.
 ```
+
+[Example](#指定统计量输出格式)
 
 ---
 

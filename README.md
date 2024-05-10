@@ -51,7 +51,7 @@ CALL = BinomialCI
 - [KappaP](./docs/KappaP/readme.md)
 - [RiskDiff](./docs/RiskDiff/readme.md)
 
-> [!WARNING]
+> [!NOTE]
 >
 > - 若指定的参数不受子程序支持，则该参数将被忽略。
 

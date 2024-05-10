@@ -39,13 +39,15 @@ _dataset_: 数据集名称
 
 _dataset-options_: 数据集选项，兼容 SAS 系统支持的所有数据集选项
 
-**Example** :
+**Usage** :
 
 ```sas
 - INDATA = ADSL
 - INDATA = SHKY.ADSL
 - INDATA = SHKY.ADSL(where = (FAS = "Y"))
 ```
+
+[Example](#一般用法)
 
 ---
 
@@ -57,17 +59,19 @@ _dataset-options_: 数据集选项，兼容 SAS 系统支持的所有数据集�
 
 _`positive-condition`_ 表示二项分布中代表试验“成功”的条件。例如：计算阳性符合率时，试验“成功”的条件是考核试剂和对比试剂检测结果均为阳性，则可以指定 `cond_pos = %str(TSTP = "阳性" and TSTC = "阳性")`，其中变量 `TSTP` 表示考核试剂检测结果，`TSTC` 表示对比试剂检测结果，此时符合 _`positive-condition`_ 条件的观测数量为“真阳性”的频数。
 
-**Caution** :
+> [!IMPORTANT]
+>
+> - 参数 `COND_POS` 指定的参数实际上被视为 WHERE 条件表达式，因此必须是合法的 SAS 条件表达式；
+> - 参数 `COND_POS` 指定的参数可以包含 `IN` 操作符，但不能使用 `#` 操作符
 
-1. 参数 `COND_POS` 指定的参数实际上被视为 WHERE 条件表达式，因此必须是合法的 SAS 条件表达式；
-2. 参数 `COND_POS` 指定的参数可以包含 `IN` 操作符，但不能使用 `#` 操作符
-
-**Example** :
+**Usage** :
 
 ```sas
 COND_POS = %str(TSTP = "阳性" and TSTC = "阳性")
 COND_POS = %str(TSTP = TSTC)
 ```
+
+[Example](#一般用法)
 
 ---
 
@@ -79,17 +83,19 @@ COND_POS = %str(TSTP = TSTC)
 
 _`negative-condition`_ 表示二项分布中代表试验“失败”的条件。例如：计算阳性符合率时，试验“失败”的条件是考核试剂检测结果为阴性，而对比试剂检测结果为阳性，则可以指定 `cond_pos = %str(TSTP = "阴性" and TSTC = "阳性")`，其中变量 `TSTP` 表示考核试剂检测结果，`TSTC` 表示对比试剂检测结果，此时符合 _`negative-condition`_ 条件的观测数量为“假阴性”的频数。
 
-**Caution** :
+> [!IMPORTANT]
+>
+> - 参数 `COND_NEG` 指定的参数实际上被视为 WHERE 条件表达式，因此必须是合法的 SAS 条件表达式；
+> - 参数 `COND_NEG` 指定的参数可以包含 `IN` 操作符，但不能使用 `#` 操作符
 
-1. 参数 `COND_NEG` 指定的参数实际上被视为 WHERE 条件表达式，因此必须是合法的 SAS 条件表达式；
-2. 参数 `COND_NEG` 指定的参数可以包含 `IN` 操作符，但不能使用 `#` 操作符
-
-**Example** :
+**Usage** :
 
 ```sas
 COND_POS = %str(TSTP = "阴性" and TSTC = "阳性")
 COND_POS = %str(TSTP ^= TSTC)
 ```
+
+[Example](#一般用法)
 
 ---
 
@@ -101,11 +107,13 @@ COND_POS = %str(TSTP ^= TSTC)
 
 `STAT_NOTE` 指定的展示名称将输出至参数 `OUTDATA` 指定的数据集中。
 
-**Example** :
+**Usage** :
 
 ```sas
 STAT_NOTE = %str(阳性符合率)
 ```
+
+[Example](#一般用法)
 
 ---
 
@@ -133,14 +141,18 @@ STAT_NOTE = %str(阳性符合率)
 
 其中，变量 `ITEM` 和 `VALUE` 默认输出到 `OUTDATA` 指定的数据集中，其余变量默认隐藏。
 
-**Tips** : 如需显示隐藏的变量，可使用数据集选项实现，例如：`OUTDATA = T1(KEEP = ITEM N POS_N NEG_N VALUE)`
+> [!TIP]
+>
+> - 如需显示隐藏的变量，可使用数据集选项实现，例如：`OUTDATA = T1(KEEP = ITEM N POS_N NEG_N VALUE)`
 
-**Example** :
+**Usage** :
 
 ```sas
 OUTDATA = T1
 OUTDATA = T1(KEEP = ITEM N POS_N NEG_N VALUE)
 ```
+
+[Example](#指定需要保留的变量)
 
 ---
 
@@ -154,16 +166,18 @@ OUTDATA = T1(KEEP = ITEM N POS_N NEG_N VALUE)
 
 默认情况下，数据集中的每一条观测的权重均为 1。
 
-**Caution** :
+> [!WARNING]
+>
+> - 参数 `WEIGHT` 不允许指定为参数 `INDATA` 指定的数据集中不存在的变量；
+> - 参数 `WEIGHT` 不允许指定为字符型变量
 
-1. 参数 `WEIGHT` 不允许指定为参数 `INDATA` 指定的数据集中不存在的变量；
-2. 参数 `WEIGHT` 不允许指定为字符型变量
-
-**Example** :
+**Usage** :
 
 ```sas
 WEIGHT = FREQ
 ```
+
+[Example](#指定权重变量)
 
 ---
 
@@ -192,11 +206,13 @@ WEIGHT = FREQ
 
 默认情况下，宏程序不对置信区间进行校正，将 WALD 法计算的置信区间输出至参数 `OUTDATA` 指定的数据集中。
 
-**Example** :
+**Usage** :
 
 ```sas
 ADJUST_METHOD = CP
 ```
+
+[Example](#指定校正置信区间的方法)
 
 ---
 
@@ -242,17 +258,22 @@ _`numeric`_ 可以是任意十进制数值
 
 默认情况下，当参数 [ADJUST_METHOD](#adjust_method) 指定了置信区间的校正方法时，参数 [ADJUST_THRESHOLD](#adjust_threshold) 的默认值为 `%str(#RATE >= 0.9)`，表示当计算的构成比（率）大于或等于 0.9 时，对置信区间进行校正。
 
-**Caution** :
+> [!NOTE]
+>
+> - 参数 `ADJUST_METHOD` 未指定校正方法时，参数 `ADJUST_THRESHOLD` 的值将被忽略；
 
-1. 参数 `ADJUST_METHOD` 未指定校正方法时，参数 `ADJUST_THRESHOLD` 的值将被忽略；
-2. 参数 `ADJUST_THRESHOLD` 不支持隐式逻辑运算（即：零或缺失值视为 FALSE，其他数值视为 TRUE），因此指定 `ADJUST_THRESHOLD = %str(#LCLM)` 是不合法的，应当替换为 `ADJUST_THRESHOLD = %str(#LCLM > 0)`；
-3. 由于逻辑操作符 `&` 在宏中有特殊含义，因此建议使用 `AND` 代替 `&`，以避免可能发生的错误。
+> [!IMPORTANT]
+>
+> - 参数 `ADJUST_THRESHOLD` 不支持隐式逻辑运算（即：零或缺失值视为 FALSE，其他数值视为 TRUE），因此指定 `ADJUST_THRESHOLD = %str(#LCLM)` 是不合法的，应当替换为 `ADJUST_THRESHOLD = %str(#LCLM > 0)`；
+> - 由于逻辑操作符 `&` 在宏中有特殊含义，因此建议使用 `AND` 代替 `&`，以避免可能发生的错误。
 
-**Example** :
+**Usage** :
 
 ```sas
 ADJUST_THRESHOLD = %str(#RATE >= 0.9 OR #LCLM <= 0)
 ```
+
+[Example](#指定校正置信区间的条件)
 
 ---
 
@@ -266,17 +287,19 @@ ADJUST_THRESHOLD = %str(#RATE >= 0.9 OR #LCLM <= 0)
 
 默认情况下，宏程序将计算 95% 置信区间。
 
-**Caution** :
+> [!WARNING]
+>
+> - 参数 `ALPHA` 只能指定 0 和 1 之间的数值；
+> - 参数 `ALPHA` 指定的数值太小时，SAS 系统将发出警告，并用 0.000000011 代替参数 `ALPHA` 的值；
+> - 参数 `ALPHA` 指定的数值太大时，SAS 系统将发出警告，并用 0.999999989 代替参数 `ALPHA` 的值；
 
-1. 参数 `ALPHA` 只能指定 0 和 1 之间的数值；
-2. 参数 `ALPHA` 指定的数值太小时，SAS 系统将发出警告，并用 0.000000011 代替参数 `ALPHA` 的值；
-3. 参数 `ALPHA` 指定的数值太大时，SAS 系统将发出警告，并用 0.999999989 代替参数 `ALPHA` 的值；
-
-**Example** :
+**Usage** :
 
 ```sas
 ALPHA = 0.10
 ```
+
+[Example](#指定显著性水平)
 
 ---
 
@@ -303,18 +326,20 @@ _`statistic-keyword`_ 可以是下述统计量之一：
 
 默认情况下，构成比（率）及其置信区间的输出格式均为 `PERCENTN9.2`。
 
-**Caution** :
+> [!IMPORTANT]
+>
+> - 若参数 `FORMAT` 仅指定了一个输出格式，但未指定某个统计量，则所有统计量的输出格式均会受影响，例如：`FORMAT = 4.1`，则构成比（率）、置信区间上限、置信区间下限的输出格式均被指定为 `4.1`；
+> - 若参数 `FORMAT` 指定了统计量 `CLM` 的输出格式，则置信区间上限和置信区间下限的输出格式会同时受到影响，例如：`FORMAT = %str(#CLM = 4.1)`，则置信区间上限和置信区间下限的输出格式均被指定为 `4.1`，而构成比（率）的输出格式仍然保持默认值 `PERCENTN9.2`；
+> - 若参数 `FORMAT` 多次指定了相同统计量的输出格式，则最后一次指定的输出格式才会生效，例如：`FORMAT = %str(#RATE = 4.1 #RATE = 5.2 #RATE = 6.3)`，则最终生效的输出格式为 `6.3`；
+> - 若参数 `FORMAT` 多次指定了会相互影响的统计量的输出格式，则被影响的部分统计量将按照最后一次指定的输出格式输出，未受影响的部分统计量的输出格式保持不变，例如：`FORMAT = %str(#CLM = 4.1 #LCLM = percentn9.2)`，则置信区间上限的输出格式为 `4.1`，置信区间下限的输出格式为 `percentn9.2`。
 
-1. 若参数 `FORMAT` 仅指定了一个输出格式，但未指定某个统计量，则所有统计量的输出格式均会受影响，例如：`FORMAT = 4.1`，则构成比（率）、置信区间上限、置信区间下限的输出格式均被指定为 `4.1`；
-2. 若参数 `FORMAT` 指定了统计量 `CLM` 的输出格式，则置信区间上限和置信区间下限的输出格式会同时受到影响，例如：`FORMAT = %str(#CLM = 4.1)`，则置信区间上限和置信区间下限的输出格式均被指定为 `4.1`，而构成比（率）的输出格式仍然保持默认值 `PERCENTN9.2`；
-3. 若参数 `FORMAT` 多次指定了相同统计量的输出格式，则最后一次指定的输出格式才会生效，例如：`FORMAT = %str(#RATE = 4.1 #RATE = 5.2 #RATE = 6.3)`，则最终生效的输出格式为 `6.3`；
-4. 若参数 `FORMAT` 多次指定了会相互影响的统计量的输出格式，则被影响的部分统计量将按照最后一次指定的输出格式输出，未受影响的部分统计量的输出格式保持不变，例如：`FORMAT = %str(#CLM = 4.1 #LCLM = percentn9.2)`，则置信区间上限的输出格式为 `4.1`，置信区间下限的输出格式为 `percentn9.2`。
-
-**Example** :
+**Usage** :
 
 ```sas
 FORMAT = %str(#RATE = 5.3 #CLM = percentn9.2)
 ```
+
+[Example](#指定统计量输出格式)
 
 ---
 
@@ -328,21 +353,23 @@ FORMAT = %str(#RATE = 5.3 #CLM = percentn9.2)
 
 **Default** : `%str(-)`
 
-**Example** :
+**Usage** :
 
 ```sas
 PLACEHOLDER = %str(不适用)
 ```
 
+[Example](#指定无法计算构成比率及置信区间时显示的字符串)
+
 ---
 
 ### DEL_TEMP_DATA
 
-**Syntax** : `TRUE|FALSE`
+**Syntax** : TRUE | FALSE
 
 指定是否删除中间数据集。
 
-**Default** : `TRUE`
+**Default** : TRUE
 
 默认情况下，宏程序将删除运行过程中生成的所有中间数据集。
 
@@ -360,17 +387,13 @@ PLACEHOLDER = %str(不适用)
 
 例如：计算灵敏度时，真阳性的观测即为试验“成功”，假阴性的观测即为试验“失败”；计算不符合率时，考核试剂与对比试剂检测结果不同的观测即为试验“成功”，考核试剂与对比试剂检测结果相同的观测即为试验“失败”。
 
-记试验“成功”的观测数为 $N_{pos}$，试验“失败”的观测数为 $N_{neg}$，则宏程序使用以下公式计算构成比（率）：
+记试验“成功”的观测数为 $N_{pos}$ ，试验“失败”的观测数为 $N_{neg}$ ，则宏程序使用以下公式计算构成比（率）：
 
-$$
-P = \frac{N_{pos}}{N_{pos} + N_{neg}} \times 100\%
-$$
+$$P = \frac{N_{pos}}{N_{pos} + N_{neg}} \times 100\%$$
 
 若指定了权重变量，则宏程序使用以下公式计算构成比（率）：
 
-$$
-P = \frac{\sum_{i=1}^{N_{pos}} W_i}{\sum_{i=1}^{N_{pos}} W_i + \sum_{i=1}^{N_{neg}} W_i} \times 100\%
-$$
+$$P = \frac{\sum_{i=1}^{N_{pos}} W_i}{\sum_{i=1}^{N_{pos}} W_i + \sum_{i=1}^{N_{neg}} W_i} \times 100\%$$
 
 其中， $W_i$ 为第 $i$ 个观测对应的权重。
 

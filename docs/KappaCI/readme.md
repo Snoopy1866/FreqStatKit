@@ -38,13 +38,15 @@ _dataset_: 数据集名称
 
 _dataset-options_: 数据集选项，兼容 SAS 系统支持的所有数据集选项
 
-**Example** :
+**Usage** :
 
 ```sas
 INDATA = ADSL
 INDATA = SHKY.ADSL
 INDATA = SHKY.ADSL(where = (FAS = "Y"))
 ```
+
+[Example](#一般用法)
 
 ---
 
@@ -57,17 +59,19 @@ INDATA = SHKY.ADSL(where = (FAS = "Y"))
 
 指定 $R\times C$ 表的定义，其中 _`variable-1`_ 表示 $R\times C$ 表的行变量，_`variable-2`_ 表示 $R\times C$ 表的列变量，_`level-i`_ 表示行（列）的具体分类名称。
 
-**Caution** :
+> [!IMPORTANT]
+>
+> - 参数 `TABLE_DEF` 指定的 $R\times C$ 表的大小必须不小于 $2\times 2$ ；
+> - 参数 `TABLE_DEF` 指定的行列变量的分类名称可以不完全相同，但由于 Kappa 系数的计算基于方形表，因此宏程序会试图求取行列变量中各分类的并集，然后在此基础上构建方形表。对于加权 Kappa 系数，行列变量的顺序有可能会影响最终的计算结果，为了避免歧义，在计算加权 Kappa 系数时，参数 `TABLE_DEL` 应当显式指定行列变量的各分类名称，且行列变量应当指定相同的分类名称。例如：`TABLE_DEF = TSTP("阳性", "阴性", "无效")*TSTC("阳性", "阴性", "无效")`。
 
-1. 参数 `TABLE_DEF` 指定的 $R\times C$ 表的大小必须不小于 $2\times 2$；
-2. 参数 `TABLE_DEF` 指定的行列变量的分类名称可以不完全相同，但由于 Kappa 系数的计算基于方形表，因此宏程序会试图求取行列变量中各分类的并集，然后在此基础上构建方形表。对于加权 Kappa 系数，行列变量的顺序有可能会影响最终的计算结果，为了避免歧义，在计算加权 Kappa 系数时，参数 `TABLE_DEL` 应当显式指定行列变量的各分类名称，且行列变量应当指定相同的分类名称。例如：`TABLE_DEF = TSTP("阳性", "阴性", "无效")*TSTC("阳性", "阴性", "无效")`。
-
-**Example** :
+**Usage** :
 
 ```sas
 TABLE_DEF = %str(TSTP*TSTC)
 TABLE_DEF = %str(TSTP("阳性", "阴性", "无效")*TSTC("阳性", "阴性", "无效"))
 ```
+
+[Example](#一般用法)
 
 ---
 
@@ -84,11 +88,13 @@ TABLE_DEF = %str(TSTP("阳性", "阴性", "无效")*TSTC("阳性", "阴性", "�
 | ITEM   | 指标名称               |
 | VALUE  | Kappa 系数及其置信区间 |
 
-**Example** :
+**Usage** :
 
 ```sas
 OUTDATA = T1
 ```
+
+[Example](#一般用法)
 
 ---
 
@@ -100,11 +106,13 @@ OUTDATA = T1
 
 **Default** : %str(kappa 系数)
 
-**Example** :
+**Usage** :
 
 ```sas
 STAT_NOTE = %str(Kappa Coefficient)
 ```
+
+[Example](#一般用法)
 
 ---
 
@@ -118,29 +126,38 @@ STAT_NOTE = %str(Kappa Coefficient)
 
 默认情况下，数据集中的每一条观测的权重均为 1。
 
-**Example** :
+**Usage** :
 
 ```sas
 WEIGHT = FREQ
 ```
 
+[Example](#指定权重变量)
+
 ---
 
 ### KAPPA_TYPE
 
-**Syntax** : #SIMPLE|#WEIGHTED
+**Syntax** : #_kappa_type_specification_
 
-指定计算 Kappa 系数的类型。
+指定计算 Kappa 系数的类型，_`kappa_type_specification`_ 可以是以下 Kappa 系数类型之一：
+
+| Kappa 系数类型 | 含义            |
+| -------------- | --------------- |
+| #SIMPLE        | 简单 Kappa 系数 |
+| #WEIGHTED      | 加权 Kappa 系数 |
 
 **Default** : #SIMPLE
 
 默认情况下，宏程序将计算简单 Kappa 系数。
 
-**Example** :
+**Usage** :
 
 ```sas
 KAPPA_TYPE = #WEIGHTED
 ```
+
+[Example](#指定计算-kappa-系数的类型)
 
 ---
 
@@ -159,15 +176,17 @@ KAPPA_TYPE = #WEIGHTED
 
 默认情况下，当参数 `KAPPA_TYPE` 指定了计算加权 Kappa 系数时，参数 `KAPPA_WEIGHT` 的默认值为 `CA`，表示使用 Cicchetti-Allison 权重进行计算。
 
-**Caution** :
+> [!WARNING]
+>
+> - 参数 `KAPPA_TYPE` 未指定计算加权 Kappa 系数时，参数 `KAPPA_WEIGHT` 的值将被忽略；
 
-1. 参数 `KAPPA_TYPE` 未指定计算加权 Kappa 系数时，参数 `KAPPA_WEIGHT` 的值将被忽略；
-
-**Example** :
+**Usage** :
 
 ```sas
 KAPPA_WEIGHT = FC
 ```
+
+[Example](#指定计算加权-kappa-系数时使用的权重类型)
 
 ---
 
@@ -181,17 +200,19 @@ KAPPA_WEIGHT = FC
 
 默认情况下，宏程序将计算 95% 置信区间。
 
-**Caution** :
+> [!WARNING]
+>
+> - 参数 `ALPHA` 只能指定 0 和 1 之间的数值；
+> - 参数 `ALPHA` 指定的数值太小时，SAS 系统将发出警告，并用 0.000000011 代替参数 `ALPHA` 的值；
+> - 参数 `ALPHA` 指定的数值太大时，SAS 系统将发出警告，并用 0.999999989 代替参数 `ALPHA` 的值；
 
-1. 参数 `ALPHA` 只能指定 0 和 1 之间的数值；
-2. 参数 `ALPHA` 指定的数值太小时，SAS 系统将发出警告，并用 0.000000011 代替参数 `ALPHA` 的值；
-3. 参数 `ALPHA` 指定的数值太大时，SAS 系统将发出警告，并用 0.999999989 代替参数 `ALPHA` 的值；
-
-**Example** :
+**Usage** :
 
 ```sas
 ALPHA = 0.10
 ```
+
+[Example](#指定显著性水平)
 
 ---
 
@@ -218,18 +239,20 @@ _`statistic-keyword`_ 可以是下述统计量之一：
 
 默认情况下，Kappa 系数及其置信区间的输出格式均为 `6.3`。
 
-**Caution** :
+> [!IMPORTANT]
+>
+> - 若参数 `FORMAT` 仅指定了一个输出格式，但未指定某个统计量，则所有统计量的输出格式均会受影响，例如：`FORMAT = 4.1`，则 Kappa 系数、置信区间上限、置信区间下限的输出格式均被指定为 `4.1`；
+> - 若参数 `FORMAT` 指定了统计量 `CLM` 的输出格式，则置信区间上限和置信区间下限的输出格式会同时受到影响，例如：`FORMAT = %str(#CLM = 4.1)`，则置信区间上限和置信区间下限的输出格式均被指定为 `4.1`，而 Kappa 系数的输出格式仍然保持默认值 `6.3`；
+> - 若参数 `FORMAT` 多次指定了相同统计量的输出格式，则最后一次指定的输出格式才会生效，例如：`FORMAT = %str(#KAPPA = 5.2 #KAPPA = 6.3 #KAPPA = 7.4)`，则最终生效的输出格式为 `7.4`；
+> - 若参数 `FORMAT` 多次指定了会相互影响的统计量的输出格式，则被影响的部分统计量将按照最后一次指定的输出格式输出，未受影响的部分统计量的输出格式保持不变，例如：`FORMAT = %str(#CLM = 4.1 #LCLM = percentn9.2)`，则置信区间上限的输出格式为 `4.1`，置信区间下限的输出格式为 `percentn9.2`。
 
-1. 若参数 `FORMAT` 仅指定了一个输出格式，但未指定某个统计量，则所有统计量的输出格式均会受影响，例如：`FORMAT = 4.1`，则 Kappa 系数、置信区间上限、置信区间下限的输出格式均被指定为 `4.1`；
-2. 若参数 `FORMAT` 指定了统计量 `CLM` 的输出格式，则置信区间上限和置信区间下限的输出格式会同时受到影响，例如：`FORMAT = %str(#CLM = 4.1)`，则置信区间上限和置信区间下限的输出格式均被指定为 `4.1`，而 Kappa 系数的输出格式仍然保持默认值 `6.3`；
-3. 若参数 `FORMAT` 多次指定了相同统计量的输出格式，则最后一次指定的输出格式才会生效，例如：`FORMAT = %str(#KAPPA = 5.2 #KAPPA = 6.3 #KAPPA = 7.4)`，则最终生效的输出格式为 `7.4`；
-4. 若参数 `FORMAT` 多次指定了会相互影响的统计量的输出格式，则被影响的部分统计量将按照最后一次指定的输出格式输出，未受影响的部分统计量的输出格式保持不变，例如：`FORMAT = %str(#CLM = 4.1 #LCLM = percentn9.2)`，则置信区间上限的输出格式为 `4.1`，置信区间下限的输出格式为 `percentn9.2`。
-
-**Example** :
+**Usage** :
 
 ```sas
 FORMAT = %str(#KAPPA = 5.2 #CLM = percentn9.2)
 ```
+
+[Example](#指定统计量输出格式)
 
 ---
 
@@ -241,17 +264,19 @@ FORMAT = %str(#KAPPA = 5.2 #CLM = percentn9.2)
 
 **Default** : `%str(-)`
 
-**Example** :
+**Usage** :
 
 ```sas
 PLACEHOLDER = %str(不适用)
 ```
 
+[Example](#指定无法计算-kappa-系数及置信区间时显示的字符串)
+
 ---
 
 ### DEL_TEMP_DATA
 
-**Syntax** : TRUE|FALSE
+**Syntax** : TRUE | FALSE
 
 指定是否删除中间数据集。默认情况下，宏程序将删除运行过程中生成的所有中间数据集。
 
