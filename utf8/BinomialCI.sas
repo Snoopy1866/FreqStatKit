@@ -4,59 +4,43 @@ Macro Name: BinomialCI
 Macro Label: 率（构成比）及其置信区间
 Author: wtwang
 Version Date: 2023-01-04 V1.0
+              2024-05-11 V1.0.1
 ===================================
 */
 
-%macro BinomialCI(INDATA, COND_POS, COND_NEG, STAT_NOTE, OUTDATA, WEIGHT = #NULL, ADJUST_METHOD = #NULL, ADJUST_THRESHOLD = #AUTO,
-                  ALPHA = 0.05, FORMAT = PERCENTN9.2, PLACEHOLDER = %str(-), DEL_TEMP_DATA = TRUE) /des = "率（构成比）及其置信区间" parmbuff;
-/*
-INDATA:          分析数据集名称
-COND_POS:        二项分布中成功的定义, 例如：COND_POS = %str(TRES = "阳性" and CRES = "阳性")
-COND_NEG:        二项分布中失败的定义, 例如：COND_NEG = %str(TRES ^= "阳性" and CRES = "阳性")
-STAT_NOTE:       统计量的名称, 例如：STAT_NOTE = %str(阳性符合率)
-OUTDATA:         输出数据集名称
-WEIGHT:          权重变量
-ADJUST_METHOD:   校正方法
-ADJUST_THRESHOLD:校正方法应用的阈值, 例如：%str(#RATE >= 0.9 or #LCLM <= 0) 表示当率大于等于90%或率的CI下限小于等于0时，使用校正方法重新计算CI
-ALPHA:           显著性水平
-PLACEHOLDER:     占位符，当成功和失败的频数均为0时，无法计算率及其CI，输出占位符到数据集中
-DEL_TEMP_DATA:   删除中间数据集
-*/
+%macro BinomialCI(INDATA,
+                  COND_POS,
+                  COND_NEG,
+                  STAT_NOTE,
+                  OUTDATA,
+                  WEIGHT           = #NULL,
+                  ADJUST_METHOD    = #NULL,
+                  ADJUST_THRESHOLD = #AUTO,
+                  ALPHA            = 0.05,
+                  FORMAT           = PERCENTN9.2,
+                  PLACEHOLDER      = "-",
+                  DEL_TEMP_DATA    = TRUE)
+                  /des = "率（构成比）及其置信区间" parmbuff;
 
     /*打开帮助文档*/
     %if %qupcase(%superq(SYSPBUFF)) = %bquote((HELP)) or %qupcase(%superq(SYSPBUFF)) = %bquote(()) %then %do;
-        /*
-        %let host = %bquote(192.168.0.199);
-        %let help = %bquote(\\&host\统计部\SAS宏\08 FreqStatKit\05 帮助文档\BinomialCI\readme.html);
-        %if %sysfunc(system(ping &host -n 1 -w 10)) = 0 %then %do;
-            %if %sysfunc(fileexist("&help")) %then %do;
-                X explorer "&help";
-            %end;
-            %else %do;
-                X mshta vbscript:msgbox("帮助文档不在线, 目标文件可能已被移动或删除！Orz",48,"提示")(window.close);
-            %end;
-        %end;
-        %else %do;
-                X mshta vbscript:msgbox("帮助文档不在线, 因为无法连接到服务器！ Orz",48,"提示")(window.close);
-        %end;
-        */
         X explorer "https://github.com/Snoopy1866/FreqStatKit/blob/main/docs/BinomialCI/readme.md";
         %goto exit;
     %end;
 
     /*----------------------------------------------初始化----------------------------------------------*/
     /*统一参数大小写*/
-    %let indata               = %sysfunc(strip(%bquote(&indata)));
-    %let cond_pos             = %sysfunc(strip(%bquote(&cond_pos)));
-    %let cond_neg             = %sysfunc(strip(%bquote(&cond_neg)));
-    %let stat_note            = %sysfunc(strip(%bquote(&stat_note)));
-    %let outdata              = %sysfunc(strip(%bquote(&outdata)));
-    %let weight               = %upcase(%sysfunc(strip(%bquote(&weight))));
-    %let adjust_method        = %upcase(%sysfunc(strip(%bquote(&adjust_method))));
-    %let adjust_threshold     = %upcase(%sysfunc(compbl(%sysfunc(strip(%bquote(&adjust_threshold))))));
-    %let alpha                = %upcase(%sysfunc(strip(%bquote(&alpha))));
-    %let format               = %upcase(%sysfunc(strip(%bquote(&format))));
-	%let del_temp_data        = %upcase(%sysfunc(strip(%bquote(&del_temp_data))));
+    %let indata               = %sysfunc(strip(%superq(indata)));
+    %let cond_pos             = %sysfunc(strip(%superq(cond_pos)));
+    %let cond_neg             = %sysfunc(strip(%superq(cond_neg)));
+    %let stat_note            = %sysfunc(strip(%superq(stat_note)));
+    %let outdata              = %sysfunc(strip(%superq(outdata)));
+    %let weight               = %upcase(%sysfunc(strip(%superq(weight))));
+    %let adjust_method        = %upcase(%sysfunc(strip(%superq(adjust_method))));
+    %let adjust_threshold     = %upcase(%sysfunc(compbl(%sysfunc(strip(%superq(adjust_threshold))))));
+    %let alpha                = %upcase(%sysfunc(strip(%superq(alpha))));
+    %let format               = %upcase(%sysfunc(strip(%superq(format))));
+    %let del_temp_data        = %upcase(%sysfunc(strip(%superq(del_temp_data))));
 
     /*统计量对应的输出格式*/
     %let GLOBAL_format = percentn9.2;
@@ -76,8 +60,8 @@ DEL_TEMP_DATA:   删除中间数据集
     %end;
     %else %do;
         %let reg_indata_id = %sysfunc(prxparse(%bquote(/^(?:([A-Za-z_][A-Za-z_\d]*)\.)?([A-Za-z_][A-Za-z_\d]*)(?:\((.*)\))?$/)));
-        %if %sysfunc(prxmatch(&reg_indata_id, %bquote(&indata))) = 0 %then %do;
-            %put ERROR: 参数 INDATA = %bquote(&indata) 格式不正确！;
+        %if %sysfunc(prxmatch(&reg_indata_id, %superq(indata))) = 0 %then %do;
+            %put ERROR: 参数 INDATA = %superq(indata) 格式不正确！;
             %goto exit;
         %end;
         %else %do;
@@ -111,6 +95,7 @@ DEL_TEMP_DATA:   删除中间数据集
         %let IS_COND_SPECIFIED = FALSE;
     %end;
 
+
     /*COND_POS*/
     %if %superq(cond_neg) = %bquote() %then %do;
         %put ERROR: 参数 COND_NEG 为空！;
@@ -121,11 +106,22 @@ DEL_TEMP_DATA:   删除中间数据集
         %goto exit;
     %end;
 
+
     /*STAT_NOTE*/
     %if %superq(stat_note) = %bquote() %then %do;
         %put ERROR: 参数 STAT_NOTE 为空！;
         %goto exit;
     %end;
+
+    %let reg_stat_note_id = %sysfunc(prxparse(%bquote(/^(\x22[^\x22]*\x22|\x27[^\x27]*\x27)$/)));
+    %if %sysfunc(prxmatch(&reg_stat_note_id, %superq(stat_note))) %then %do;
+        %let stat_note_quote = %superq(stat_note);
+    %end;
+    %else %do;
+        %put ERROR: 参数 STAT_NOTE 格式不正确，指定的字符串必须使用匹配的引号包围！;
+        %goto exit;
+    %end;
+
 
     /*OUTDATA*/
     %if %superq(outdata) = %bquote() %then %do;
@@ -138,8 +134,8 @@ DEL_TEMP_DATA:   删除中间数据集
         %end;
  
         %let reg_outdata_id = %sysfunc(prxparse(%bquote(/^(?:([A-Za-z_][A-Za-z_\d]*)\.)?([A-Za-z_][A-Za-z_\d]*)(?:\((.*)\))?$/)));
-        %if %sysfunc(prxmatch(&reg_outdata_id, %bquote(&outdata))) = 0 %then %do;
-            %put ERROR: 参数 OUTDATA = %bquote(&outdata) 格式不正确！;
+        %if %sysfunc(prxmatch(&reg_outdata_id, %superq(outdata))) = 0 %then %do;
+            %put ERROR: 参数 OUTDATA = %superq(outdata) 格式不正确！;
             %goto exit;
         %end;
         %else %do;
@@ -162,7 +158,7 @@ DEL_TEMP_DATA:   删除中间数据集
     /*WEIGHT*/
     %if %superq(weight) ^= #NULL %then %do;
         %let reg_weight_id = %sysfunc(prxparse(%bquote(/^[A-Za-z_][A-Za-z_\d]*$/)));
-        %if %sysfunc(prxmatch(&reg_weight_id, %bquote(&weight))) = 0 %then %do;
+        %if %sysfunc(prxmatch(&reg_weight_id, %superq(weight))) = 0 %then %do;
             %put ERROR: 参数 WEIGHT = %bquote(&weight) 格式不正确！;
             %goto exit;
         %end;
@@ -195,8 +191,8 @@ DEL_TEMP_DATA:   删除中间数据集
     %end;
     %else %do;
         %let reg_adjust_method_id = %sysfunc(prxparse(%bquote(/^(?:WILSON\(CORRECT\)|SCORE\(CORRECT\)|LIKELIHOODRATIO|CLOPPERPEARSON|AGRESTICOULL|JEFFREYS|SCOREC|WILSONC|BLAKER|WILSON|EXACT|LOGIT|SCORE|MIDP|LOG|AC|CP|LR|MP|J)$/)));
-        %if %sysfunc(prxmatch(&reg_adjust_method_id, %bquote(&adjust_method))) = 0 %then %do;
-            %put ERROR: 参数 ADJUST_METHOD 指定的校正方法 %bquote(&ADJUST_METHOD) 不存在或不受支持，受支持的校正方法如下：;
+        %if %sysfunc(prxmatch(&reg_adjust_method_id, %superq(adjust_method))) = 0 %then %do;
+            %put ERROR: 参数 ADJUST_METHOD 指定的校正方法 %superq(ADJUST_METHOD) 不存在或不受支持，受支持的校正方法如下：;
             %put ERROR- %bquote(AC, AGRESTICOULL);
             %put ERROR- %bquote(BLAKER);
             %put ERROR- %bquote(CP, CLOPPERPEARSON, EXACT);
@@ -211,10 +207,9 @@ DEL_TEMP_DATA:   删除中间数据集
     %end;
 
 
-
     /*ADJUST_THRESHOLD*/
     %if %superq(adjust_method) = #NULL %then %do;
-        %if %bquote(&adjust_threshold) ^= %bquote() and %bquote(&adjust_threshold) ^= #AUTO %then %do;
+        %if %superq(adjust_threshold) ^= %bquote() and %superq(adjust_threshold) ^= #AUTO %then %do;
             %put WARNING: 未指定校正方法，参数 ADJUST_THRESHOLD 已被忽略！;
         %end;
     %end;
@@ -226,8 +221,8 @@ DEL_TEMP_DATA:   删除中间数据集
         %end;
         %else %do;
             %let reg_adjust_threshold_id = %sysfunc(prxparse(%bquote(/^\(*\s?#(RATE|LCLM|UCLM)\s?(NE|\^=|~=|GE|>=|LE|<=|GT|>|LT|<|EQ|=)\s?(\d+(?:\.\d+)?)\s?\)*(?:\s(AND|OR|&|\|)\s\(*\s?#(RATE|LCLM|UCLM)\s?(NE|\^=|~=|GE|>=|LE|<=|GT|>|LT|<|EQ|=)\s?(\d+(?:\.\d+)?)\s?\)*)*$/)));
-            %if %sysfunc(prxmatch(&reg_adjust_threshold_id, %bquote(&adjust_threshold))) = 0 %then %do;
-                %put ERROR: 参数 ADJUST_THRESHOLD = %bquote(&adjust_threshold) 格式不正确！;
+            %if %sysfunc(prxmatch(&reg_adjust_threshold_id, %superq(adjust_threshold))) = 0 %then %do;
+                %put ERROR: 参数 ADJUST_THRESHOLD = %superq(adjust_threshold) 格式不正确！;
                 %goto exit;
             %end;
             %else %do;
@@ -250,7 +245,7 @@ DEL_TEMP_DATA:   删除中间数据集
     %end;
 
     %let reg_alpha_id = %sysfunc(prxparse(%bquote(/^0?\.\d+$/)));
-    %if %sysfunc(prxmatch(&reg_alpha_id, %bquote(&alpha))) = 0 %then %do;
+    %if %sysfunc(prxmatch(&reg_alpha_id, %superq(alpha))) = 0 %then %do;
         %put ERROR: 参数 ALPHA 格式不正确！;
         %goto exit;
     %end;
@@ -326,9 +321,9 @@ DEL_TEMP_DATA:   删除中间数据集
             %let i = %eval(&i + 1);
         %end;
     %end;
-	
-	
-	/*DEL_TEMP_DATA*/
+    
+    
+    /*DEL_TEMP_DATA*/
     %if %superq(del_temp_data) ^= TRUE and %superq(del_temp_data) ^= FALSE %then %do;
         %put ERROR: 参数 DEL_TEMP_DATA 必须是 TRUE 或 FALSE！;
         %goto exit;
@@ -363,12 +358,12 @@ DEL_TEMP_DATA:   删除中间数据集
 
     /*“成功”和“失败”的频数均为0，无法计算置信区间时，提前结束计算*/
     %if &pos_n = 0 and &neg_n = 0 %then %do;
-		%let rate = .;
-		%let rate_fmt = %bquote(&placeholder);
-		%let lclm = .;
-		%let lclm_fmt = %bquote(&placeholder);
-		%let uclm = .;
-		%let uclm_fmt = %bquote(&placeholder);
+        %let rate = .;
+        %let rate_fmt = %bquote(&placeholder);
+        %let lclm = .;
+        %let lclm_fmt = %bquote(&placeholder);
+        %let uclm = .;
+        %let uclm_fmt = %bquote(&placeholder);
         %let rate_and_ci = %bquote(&placeholder);
         %goto temp_out;
     %end;
@@ -393,11 +388,11 @@ DEL_TEMP_DATA:   删除中间数据集
     quit;
     
     /*5. 根据是否指定校正方法以及校正条件，提取率及其置信区间*/
-	proc sql noprint;
-		select _BIN_ format = 16.14 into :RATE from temp_ci;
-		select L_BIN format = 16.14 into :LCLM from temp_ci;
-		select U_BIN format = 16.14 into :UCLM from temp_ci;
-	quit;
+    proc sql noprint;
+        select _BIN_ format = 16.14 into :RATE from temp_ci;
+        select L_BIN format = 16.14 into :LCLM from temp_ci;
+        select U_BIN format = 16.14 into :UCLM from temp_ci;
+    quit;
     %if %bquote(&adjust_method) ^= #NULL %then %do; /*指定了校正方法*/
         proc sql noprint;
             %if %sysevalf(%unquote(&adjust_threshold_cond_expr)) %then %do;
@@ -471,18 +466,18 @@ DEL_TEMP_DATA:   删除中间数据集
     %temp_out:
     proc sql noprint;
         create table temp_out (item char(200),
-							   n num, 
-							   pos_n num, 
-							   neg_n num, 
-							   rate num, 
-							   rate_fmt char(200), 
-							   lclm num, 
-							   lclm_fmt char(200), 
-							   uclm num, 
-							   uclm_fmt char(200), 
-							   value char(200));
+                               n num, 
+                               pos_n num, 
+                               neg_n num, 
+                               rate num, 
+                               rate_fmt char(200), 
+                               lclm num, 
+                               lclm_fmt char(200), 
+                               uclm num, 
+                               uclm_fmt char(200), 
+                               value char(200));
         insert into temp_out
-            values("&stat_note", %eval(&pos_n + &neg_n), &pos_n, &neg_n, &rate, "&rate_fmt", &lclm, "&lclm_fmt", &uclm, "&uclm_fmt", "&rate_and_ci");
+            values(&stat_note_quote, %eval(&pos_n + &neg_n), &pos_n, &neg_n, &rate, "&rate_fmt", &lclm, "&lclm_fmt", &uclm, "&uclm_fmt", "&rate_and_ci");
     quit;
 
 
@@ -499,15 +494,15 @@ DEL_TEMP_DATA:   删除中间数据集
     /*----------------------------------------------运行后处理----------------------------------------------*/
     %exit_with_error_in_sqlcond:
     /*删除中间数据集*/
-	%if %superq(del_temp_data) = TRUE %then %do;
-		proc datasets noprint nowarn;
-			delete temp_indata
-				   temp_freq
-				   temp_ci
-				   temp_out
-				   ;
-		quit;
-	%end;
+    %if %superq(del_temp_data) = TRUE %then %do;
+        proc datasets noprint nowarn;
+            delete temp_indata
+                   temp_freq
+                   temp_ci
+                   temp_out
+                   ;
+        quit;
+    %end;
 
     /*删除临时宏*/
     proc catalog catalog = work.sasmacr;

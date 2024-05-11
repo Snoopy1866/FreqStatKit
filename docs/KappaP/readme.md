@@ -102,11 +102,25 @@ OUTDATA = T1
 
 ### STAT_NOTE
 
-**Syntax** : _string(s)_
+**Syntax** : "_string_" | '_string_'
 
 指定 Kappa 系数检验的 P 值的名称，指定的名称将输出至参数 `OUTDATA` 指定的数据集中的 ITEM 列。
 
-**Default** : %str(kappa P 值)
+> [!IMPORTANT]
+>
+> 如果指定的 `STAT_NOTE` 中含有不匹配的引号，例如，需要指定 `STAT_NOTE` 为一个单引号，可以选择以下传参方式：
+>
+> ```sas
+> STAT_NOTE = "'"
+> ```
+>
+> 但不能使用以下传参方式：
+>
+> ```sas
+> STAT_NOTE = ''''
+> ```
+
+**Default** : "kappa P 值"
 
 **Usage** :
 
@@ -287,11 +301,25 @@ FORMAT = 5.3
 
 ### PLACEHOLDER
 
-**Syntax** : _string_(_s_)
+**Syntax** : "_string_" | '_string_'
 
 指定当无法计算 Kappa 系数导致假设检验无法进行时，输出数据集中显示的字符（串）。
 
-**Default** : `%str(-)`
+> [!IMPORTANT]
+>
+> 如果指定的 `PLACEHOLDER` 中含有不匹配的引号，例如，需要指定 `PLACEHOLDER` 为一个单引号，可以选择以下传参方式：
+>
+> ```sas
+> PLACEHOLDER = "'"
+> ```
+>
+> 但不能使用以下传参方式：
+>
+> ```sas
+> PLACEHOLDER = ''''
+> ```
+
+**Default** : `"-"`
 
 **Usage** :
 
@@ -334,7 +362,7 @@ PLACEHOLDER = %str(不适用)
 %KappaP(indata = adeff(where = (CMPTFL = "Y")),
         table_def = TSTP("阳性", "阴性", "无效")*TSTC("阳性", "阴性", "无效"),
         outdata = t1,
-        stat_note = %str(Kappa P));
+        stat_note = "Kappa P");
 ```
 
 ### 指定权重变量
@@ -421,5 +449,5 @@ run;
 %KappaP(indata = adeff(where = (CMPTFL = "Y")),
         table_def = TSTP("金", "木", "水", "火", "土")*TSTC("甲", "乙", "丙", "丁", "戊"),
         outdata = t1,
-        placeholder = %str(-));
+        placeholder = "-");
 ```

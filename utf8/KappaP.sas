@@ -5,60 +5,44 @@ Macro Label: Kappa 系数的检验P值
 Author: wtwang
 Version Date: 2023-01-13 V1.0
               2023-12-06 V1.1
+              2024-05-11 V1.1.1
 ===================================
 */
 
-%macro KappaP(INDATA, TABLE_DEF, OUTDATA, STAT_NOTE = %str(Kappa P值), WEIGHT = #NULL, KAPPA_TYPE = #SIMPLE, KAPPA_WEIGHT = #AUTO,
-              EXACT = FALSE, NULL_KAPPA = #AUTO, SIDES = 2, FORMAT = PVALUE6.3, PLACEHOLDER = %str(-), DEL_TEMP_DATA = TRUE) /des = "Kappa 系数检验的P值" parmbuff;
-/*
-INDATA:          分析数据集名称
-TABLE_DEF:       R*C表的定义
-STAT_NOTE:       统计量的名称, 例如：STAT_NOTE = %str(Kappa P值)
-OUTDATA:         输出数据集名称
-WEIGHT:          权重变量
-KAPPA_TYPE:      Kappa值的类型（简单Kappa, 加权Kappa）
-KAPPA_WEIGHT:    Kappa权重的类型（Cicchetti-Allison, Fleiss-Cohen）
-EXACT:           是否进行精确检验
-NULL_KAPPA:      零假设下的Kappa系数
-SIDES:           检验类型（1: 单侧检验, 2: 双侧检验）
-PLACEHOLDER:     占位符，当表为空或表过于稀疏时，无法计算Kappa值，输出占位符到数据集中
-DEL_TEMP_DATA:   删除中间数据集
-*/
+%macro KappaP(INDATA,
+              TABLE_DEF,
+              OUTDATA,
+              STAT_NOTE     = "Kappa P值",
+              WEIGHT        = #NULL,
+              KAPPA_TYPE    = #SIMPLE,
+              KAPPA_WEIGHT  = #AUTO,
+              EXACT         = FALSE,
+              NULL_KAPPA    = #AUTO,
+              SIDES         = 2,
+              FORMAT        = PVALUE6.3,
+              PLACEHOLDER   = %str(-),
+              DEL_TEMP_DATA = TRUE)
+              /des = "Kappa 系数检验的P值" parmbuff;
 
     /*打开帮助文档*/
     %if %qupcase(%superq(SYSPBUFF)) = %bquote((HELP)) or %qupcase(%superq(SYSPBUFF)) = %bquote(()) %then %do;
-        /*
-        %let host = %bquote(192.168.0.199);
-        %let help = %bquote(\\&host\统计部\SAS宏\08 FreqStatKit\05 帮助文档\KappaP\readme.html);
-        %if %sysfunc(system(ping &host -n 1 -w 10)) = 0 %then %do;
-            %if %sysfunc(fileexist("&help")) %then %do;
-                X explorer "&help";
-            %end;
-            %else %do;
-                X mshta vbscript:msgbox("帮助文档不在线, 目标文件可能已被移动或删除！Orz",48,"提示")(window.close);
-            %end;
-        %end;
-        %else %do;
-                X mshta vbscript:msgbox("帮助文档不在线, 因为无法连接到服务器！ Orz",48,"提示")(window.close);
-        %end;
-        */
         X explorer "https://github.com/Snoopy1866/FreqStatKit/blob/main/docs/KappaP/readme.md";
         %goto exit;
     %end;
 
     /*----------------------------------------------初始化----------------------------------------------*/
     /*统一参数大小写*/
-    %let indata               = %sysfunc(strip(%bquote(&indata)));
-    %let table_def            = %sysfunc(strip(%bquote(&table_def)));
-    %let stat_note            = %sysfunc(strip(%bquote(&stat_note)));
-    %let outdata              = %sysfunc(strip(%bquote(&outdata)));
-    %let weight               = %upcase(%sysfunc(strip(%bquote(&weight))));
-    %let kappa_type           = %upcase(%sysfunc(strip(%bquote(&kappa_type))));
-    %let kappa_weight         = %upcase(%sysfunc(strip(%bquote(&kappa_weight))));
-    %let exact                = %upcase(%sysfunc(strip(%bquote(&exact))));
-    %let null_kappa           = %upcase(%sysfunc(strip(%bquote(&null_kappa))));
-    %let format               = %upcase(%sysfunc(strip(%bquote(&format))));
-    %let del_temp_data        = %upcase(%sysfunc(strip(%bquote(&del_temp_data))));
+    %let indata               = %sysfunc(strip(%superq(indata)));
+    %let table_def            = %sysfunc(strip(%superq(table_def)));
+    %let stat_note            = %sysfunc(strip(%superq(stat_note)));
+    %let outdata              = %sysfunc(strip(%superq(outdata)));
+    %let weight               = %upcase(%sysfunc(strip(%superq(weight))));
+    %let kappa_type           = %upcase(%sysfunc(strip(%superq(kappa_type))));
+    %let kappa_weight         = %upcase(%sysfunc(strip(%superq(kappa_weight))));
+    %let exact                = %upcase(%sysfunc(strip(%superq(exact))));
+    %let null_kappa           = %upcase(%sysfunc(strip(%superq(null_kappa))));
+    %let format               = %upcase(%sysfunc(strip(%superq(format))));
+    %let del_temp_data        = %upcase(%sysfunc(strip(%superq(del_temp_data))));
 
     /*声明局部变量*/
     %local i j;
@@ -71,8 +55,8 @@ DEL_TEMP_DATA:   删除中间数据集
     %end;
     %else %do;
         %let reg_indata_id = %sysfunc(prxparse(%bquote(/^(?:([A-Za-z_][A-Za-z_\d]*)\.)?([A-Za-z_][A-Za-z_\d]*)(?:\((.*)\))?$/)));
-        %if %sysfunc(prxmatch(&reg_indata_id, %bquote(&indata))) = 0 %then %do;
-            %put ERROR: 参数 INDATA = %bquote(&indata) 格式不正确！;
+        %if %sysfunc(prxmatch(&reg_indata_id, %superq(indata))) = 0 %then %do;
+            %put ERROR: 参数 INDATA = %superq(indata) 格式不正确！;
             %goto exit;
         %end;
         %else %do;
@@ -107,8 +91,8 @@ DEL_TEMP_DATA:   删除中间数据集
     %else %do;
         %let reg_table_def_expr = %bquote(/^([A-Za-z_][A-Za-z_\d]*)(?:\(\s*(".*"(?:[\s,]+".*")*)?\s*\))?\s*\*\s*([A-Za-z_][A-Za-z_\d]*)(?:\(\s*(".*"(?:[\s,]+".*")*)?\s*\))?$/);
         %let reg_table_def_id = %sysfunc(prxparse(&reg_table_def_expr));
-        %if %sysfunc(prxmatch(&reg_table_def_id, %bquote(&table_def))) = 0 %then %do;
-            %put ERROR: 参数 TABLE_DEF 格式不正确！;
+        %if %sysfunc(prxmatch(&reg_table_def_id, %superq(table_def))) = 0 %then %do;
+            %put ERROR: 参数 TABLE_DEF  = %superq(table_def) 格式不正确！;
             %goto exit;
         %end;
         %else %do;
@@ -148,6 +132,15 @@ DEL_TEMP_DATA:   删除中间数据集
         %goto exit;
     %end;
 
+    %let reg_stat_note_id = %sysfunc(prxparse(%bquote(/^(\x22[^\x22]*\x22|\x27[^\x27]*\x27)$/)));
+    %if %sysfunc(prxmatch(&reg_stat_note_id, %superq(stat_note))) %then %do;
+        %let stat_note_quote = %superq(stat_note);
+    %end;
+    %else %do;
+        %put ERROR: 参数 STAT_NOTE 格式不正确，指定的字符串必须使用匹配的引号包围！;
+        %goto exit;
+    %end;
+
 
     /*OUTDATA*/
     %if %superq(outdata) = %bquote() %then %do;
@@ -160,8 +153,8 @@ DEL_TEMP_DATA:   删除中间数据集
         %end;
  
         %let reg_outdata_id = %sysfunc(prxparse(%bquote(/^(?:([A-Za-z_][A-Za-z_\d]*)\.)?([A-Za-z_][A-Za-z_\d]*)(?:\((.*)\))?$/)));
-        %if %sysfunc(prxmatch(&reg_outdata_id, %bquote(&outdata))) = 0 %then %do;
-            %put ERROR: 参数 OUTDATA = %bquote(&outdata) 格式不正确！;
+        %if %sysfunc(prxmatch(&reg_outdata_id, %superq(outdata))) = 0 %then %do;
+            %put ERROR: 参数 OUTDATA = %superq(outdata) 格式不正确！;
             %goto exit;
         %end;
         %else %do;
@@ -180,12 +173,12 @@ DEL_TEMP_DATA:   删除中间数据集
         %put NOTE: 输出数据集被指定为 &libname_out..&memname_out;
     %end;
 
-    
+
     /*WEIGHT*/
     %if %superq(weight) ^= #NULL %then %do;
         %let reg_weight_id = %sysfunc(prxparse(%bquote(/^[A-Za-z_][A-Za-z_\d]*$/)));
-        %if %sysfunc(prxmatch(&reg_weight_id, %bquote(&weight))) = 0 %then %do;
-            %put ERROR: 参数 WEIGHT = %bquote(&weight) 格式不正确！;
+        %if %sysfunc(prxmatch(&reg_weight_id, %superq(weight))) = 0 %then %do;
+            %put ERROR: 参数 WEIGHT = %superq(weight) 格式不正确！;
             %goto exit;
         %end;
         %else %do;
@@ -292,7 +285,6 @@ DEL_TEMP_DATA:   删除中间数据集
             %end;
         %end;
     %end;
-    
 
 
     /*SIDES*/
@@ -315,8 +307,8 @@ DEL_TEMP_DATA:   删除中间数据集
 
     %let reg_format = %bquote(/^((\$?[A-Za-z_]+(?:\d+[A-Za-z_]+)?)(?:\.|\d+\.\d*)|\$\d+\.|\d+\.\d*)$/);
     %let reg_format_id = %sysfunc(prxparse(&reg_format));
-    %if %sysfunc(prxmatch(&reg_format_id, &format)) = 0 %then %do;
-        %put ERROR: 参数 FORMAT 格式不正确！;
+    %if %sysfunc(prxmatch(&reg_format_id, %superq(format))) = 0 %then %do;
+        %put ERROR: 参数 FORMAT = %superq(format) 格式不正确！;
         %goto exit;
     %end;
     %else %do;
@@ -672,7 +664,7 @@ DEL_TEMP_DATA:   删除中间数据集
     %temp_out:
     proc sql noprint;
         create table temp_out (item char(200), value char(200));
-        insert into temp_out values("&stat_note", "&kappap");
+        insert into temp_out values(&stat_note_quote, "&kappap");
     quit;
     
 

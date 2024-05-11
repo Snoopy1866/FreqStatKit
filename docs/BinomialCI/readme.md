@@ -101,16 +101,30 @@ COND_POS = %str(TSTP ^= TSTC)
 
 ### STAT_NOTE
 
-**Syntax** : _string_(_s_)
+**Syntax** : "_string_" | '_string_'
 
 指定计算的构成比（率）的展示名称。
 
 `STAT_NOTE` 指定的展示名称将输出至参数 `OUTDATA` 指定的数据集中。
 
+> [!IMPORTANT]
+>
+> 如果指定的 `STAT_NOTE` 中含有不匹配的引号，例如，需要指定 `STAT_NOTE` 为一个单引号，可以选择以下传参方式：
+>
+> ```sas
+> STAT_NOTE = "'"
+> ```
+>
+> 但不能使用以下传参方式：
+>
+> ```sas
+> STAT_NOTE = ''''
+> ```
+
 **Usage** :
 
 ```sas
-STAT_NOTE = %str(阳性符合率)
+STAT_NOTE = "阳性符合率"
 ```
 
 [Example](#一般用法)
@@ -345,13 +359,27 @@ FORMAT = %str(#RATE = 5.3 #CLM = percentn9.2)
 
 ### PLACEHOLDER
 
-**Syntax** : _string_(_s_)
+**Syntax** : "_string_" | '_string_'
 
 指定当无法计算构成比（率）和置信区间时，输出数据集中显示的字符（串）。
 
 当符合参数 `COND_POS` 和 `COND_NEG` 指定的条件的观测数均为 0 时，宏程序将无法计算构成比（率）及其置信区间，此时输出数据集中的变量 `VALUE` 将会显示由参数 `PLACEHOLDER` 指定的字符（串）。
 
-**Default** : `%str(-)`
+> [!IMPORTANT]
+>
+> 如果指定的 `PLACEHOLDER` 中含有不匹配的引号，例如，需要指定 `PLACEHOLDER` 为一个单引号，可以选择以下传参方式：
+>
+> ```sas
+> PLACEHOLDER = "'"
+> ```
+>
+> 但不能使用以下传参方式：
+>
+> ```sas
+> PLACEHOLDER = ''''
+> ```
+
+**Default** : `"-"`
 
 **Usage** :
 
@@ -418,7 +446,7 @@ $$P = \frac{\sum_{i=1}^{N_{pos}} W_i}{\sum_{i=1}^{N_{pos}} W_i + \sum_{i=1}^{N_{
 %BinomialCI(indata = adeff(where = (CMPTFL = "Y")),
             cond_pos = %str(TSTP = "阳性" and TSTC = "阳性"),
             cond_neg = %str(TSTP ^= "阳性" and TSTC = "阳性"),
-            stat_note = %str(阳性符合率),
+            stat_note = "阳性符合率",
             outdata = t1);
 ```
 
@@ -430,7 +458,7 @@ $$P = \frac{\sum_{i=1}^{N_{pos}} W_i}{\sum_{i=1}^{N_{pos}} W_i + \sum_{i=1}^{N_{
 %BinomialCI(indata = adeff(where = (CMPTFL = "Y")),
             cond_pos = %str(TSTP = "阳性" and TSTC = "阳性"),
             cond_neg = %str(TSTP ^= "阳性" and TSTC = "阳性"),
-            stat_note = %str(阳性符合率),
+            stat_note = "阳性符合率",
             outdata = t1(keep = item n pos_n value));
 ```
 
@@ -447,7 +475,7 @@ run;
 %BinomialCI(indata = adeff(where = (CMPTFL = "Y")),
             cond_pos = %str(TSTP = "阳性" and TSTC = "阳性"),
             cond_neg = %str(TSTP ^= "阳性" and TSTC = "阳性"),
-            stat_note = %str(阳性符合率),
+            stat_note = "阳性符合率",
             outdata = t1,
             weight = freq);
 ```
@@ -460,7 +488,7 @@ run;
 %BinomialCI(indata = adeff(where = (CMPTFL = "Y")),
             cond_pos = %str(TSTP = "阳性" and TSTC = "阳性"),
             cond_neg = %str(TSTP ^= "阳性" and TSTC = "阳性"),
-            stat_note = %str(阳性符合率),
+            stat_note = "阳性符合率",
             outdata = t1,
             adjust_method = cp);
 ```
@@ -477,7 +505,7 @@ run;
 %BinomialCI(indata = adeff(where = (CMPTFL = "Y")),
             cond_pos = %str(TSTP = "阳性" and TSTC = "阳性"),
             cond_neg = %str(TSTP ^= "阳性" and TSTC = "阳性"),
-            stat_note = %str(阳性符合率),
+            stat_note = "阳性符合率",
             outdata = t1,
             adjust_method = cp,
             adjust_threshold = %str(#RATE >= 0.9 or #LCLM <= 0));
@@ -493,7 +521,7 @@ run;
 %BinomialCI(indata = adeff(where = (CMPTFL = "Y")),
             cond_pos = %str(TSTP = "阳性" and TSTC = "阳性"),
             cond_neg = %str(TSTP ^= "阳性" and TSTC = "阳性"),
-            stat_note = %str(阳性符合率),
+            stat_note = "阳性符合率",
             outdata = t1,
             adjust_method = cp,
             adjust_threshold = %str(#RATE >= 0.9 or #LCLM <= 0),
@@ -506,7 +534,7 @@ run;
 %BinomialCI(indata = adeff(where = (CMPTFL = "Y")),
             cond_pos = %str(TSTP = "阳性" and TSTC = "阳性"),
             cond_neg = %str(TSTP ^= "阳性" and TSTC = "阳性"),
-            stat_note = %str(阳性符合率),
+            stat_note = "阳性符合率",
             outdata = t1,
             adjust_method = cp,
             adjust_threshold = %str(#RATE >= 0.9 or #LCLM <= 0),
@@ -521,7 +549,7 @@ run;
 %BinomialCI(indata = adeff(where = (CMPTFL = "Y")),
             cond_pos = %str(TSTP = "阳性" and TSTP = "阴性"),
             cond_neg = %str(TSTC = "阳性" and TSTC = "阴性"),
-            stat_note = %str(阳性符合率),
+            stat_note = "阳性符合率",
             outdata = t1,
             adjust_method = cp,
             adjust_threshold = %str(#RATE >= 0.9 or #LCLM <= 0),

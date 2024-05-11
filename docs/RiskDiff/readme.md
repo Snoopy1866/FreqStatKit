@@ -161,12 +161,12 @@ STAT_NOTE = '手术成功率差值(95%CI)'
 
 | 变量名      | 含义                                                                     |
 | ----------- | ------------------------------------------------------------------------ |
-| N11         | _treatment-level_ & _positive-level_ 的频数                              |
-| N12         | _treatment-level_ & _negative-level_ 的频数                              |
-| N10         | _treatment-level_ 的频数                                                 |
-| N21         | _control-level_ & _positive-level_ 的频数                                |
-| N22         | _control-level_ & _negative-level_ 的频数                                |
-| N20         | _control-level_ 的频数                                                   |
+| N11         | $n_{11}$                                                                 |
+| N12         | $n_{12}$                                                                 |
+| N10         | $n_{10}$                                                                 |
+| N21         | $n_{21}$                                                                 |
+| N22         | $n_{22}$                                                                 |
+| N20         | $n_{20}$                                                                 |
 | ALPHA       | 显著性水平 $\alpha$                                                      |
 | P1          | $p_1$                                                                    |
 | P2          | $p_2$                                                                    |
@@ -267,9 +267,9 @@ WEIGHT = FREQ
 >
 >     - 上限的判别式 $\Delta_U = z^2 + 2 - \frac{1}{n} + 4p(n - np - 1)$ 符号不确定。[WolframeAlpha 验证结果](https://www.wolframalpha.com/input?i=Solve%5B%7Bz%5E2+%2B+2+-+1%2Fn+%2B4*p*%28n+-+n*p+-+1%29%3C0%2C+0%3C%3Dp%3C%3D1%2C+n%3E%3D1%7D%2C+n%5D)
 >
->     - $\alpha <= 0.1$ ，即 $|z| >= 1.645$ 时， $\Delta_L >= 0$ 恒成立。[WolframeAlpha 验证结果](https://www.wolframalpha.com/input?i=Solve%5B%7Bz%5E2+-+2+-+1%2Fn+%2B4*p*%28n+-+n*p+%2B+1%29%3C0%2C+0%3C%3Dp%3C%3D1%2C+n%3E%3D2%2C+abs%28z%29%3E%3D1.645%7D%2C+n%5D)
+>     - $\alpha \le 0.1$ ，即 $|z| \ge 1.645$ 时， $\Delta_L \ge 0$ 恒成立。[WolframeAlpha 验证结果](https://www.wolframalpha.com/input?i=Solve%5B%7Bz%5E2+-+2+-+1%2Fn+%2B4*p*%28n+-+n*p+%2B+1%29%3C0%2C+0%3C%3Dp%3C%3D1%2C+n%3E%3D2%2C+abs%28z%29%3E%3D1.645%7D%2C+n%5D)
 >
->     - $\alpha <= 0.1$ ，即 $|z| >= 1.645$ 时， $\Delta_U >= 0$ 恒成立。[WolframeAlpha 验证结果](https://www.wolframalpha.com/input?i=Solve%5B%7Bz%5E2+%2B+2+-+1%2Fn+%2B4*p*%28n+-+n*p+-+1%29%3C0%2C+0%3C%3Dp%3C%3D1%2C+n%3E%3D2%2C+abs%28z%29%3E%3D1.645%7D%2C+n%5D)
+>     - $\alpha \le 0.1$ ，即 $|z| \ge 1.645$ 时， $\Delta_U \ge 0$ 恒成立。[WolframeAlpha 验证结果](https://www.wolframalpha.com/input?i=Solve%5B%7Bz%5E2+%2B+2+-+1%2Fn+%2B4*p*%28n+-+n*p+-+1%29%3C0%2C+0%3C%3Dp%3C%3D1%2C+n%3E%3D2%2C+abs%28z%29%3E%3D1.645%7D%2C+n%5D)
 
 **Usage** :
 
