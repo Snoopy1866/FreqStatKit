@@ -5,6 +5,7 @@ Macro Label: 率（构成比）及其置信区间
 Author: wtwang
 Version Date: 2023-01-04 V1.0
               2024-05-11 V1.0.1
+              2024-05-27 V1.0.2
 ===================================
 */
 
@@ -154,7 +155,7 @@ Version Date: 2023-01-04 V1.0
         %put NOTE: 输出数据集被指定为 &libname_out..&memname_out;
     %end;
 
-
+    
     /*WEIGHT*/
     %if %superq(weight) ^= #NULL %then %do;
         %let reg_weight_id = %sysfunc(prxparse(%bquote(/^[A-Za-z_][A-Za-z_\d]*$/)));
@@ -217,7 +218,7 @@ Version Date: 2023-01-04 V1.0
         %if %superq(adjust_threshold) = #AUTO %then %do;
             %put NOTE: 未指定校正条件，默认当构成比（率）大于或等于0.9时对置信区间进行校正！;
             %let adjust_threshold = %bquote(#RATE >= 0.9);
-            %let adjust_threshold_cond_expr = %nrstr(&RATE >= 0.9);
+            %let adjust_threshold_cond_expr = %bquote(RATE >= 0.9);
         %end;
         %else %do;
             %let reg_adjust_threshold_id = %sysfunc(prxparse(%bquote(/^\(*\s?#(RATE|LCLM|UCLM)\s?(NE|\^=|~=|GE|>=|LE|<=|GT|>|LT|<|EQ|=)\s?(\d+(?:\.\d+)?)\s?\)*(?:\s(AND|OR|&|\|)\s\(*\s?#(RATE|LCLM|UCLM)\s?(NE|\^=|~=|GE|>=|LE|<=|GT|>|LT|<|EQ|=)\s?(\d+(?:\.\d+)?)\s?\)*)*$/)));
@@ -227,7 +228,7 @@ Version Date: 2023-01-04 V1.0
             %end;
             %else %do;
                 %if %sysfunc(count(%bquote(adjust_threshold), %bquote(%str(%()))) = %sysfunc(count(%bquote(adjust_threshold), %bquote(%str(%))))) %then %do;
-                    %let adjust_threshold_cond_expr = %nrstr(%sysfunc(transtrn(%bquote(&adjust_threshold), %bquote(#), %nrbquote(&)))); /*校正条件对应的宏表达式*/
+                    %let adjust_threshold_cond_expr = %sysfunc(transtrn(%bquote(&adjust_threshold), %bquote(#), %nrbquote())); /*校正条件对应的表达式*/
                 %end;
                 %else %do;
                     %put ERROR: 参数 ADJUST_THRESHOLD = %bquote(&adjust_threshold) 括号不匹配！;
@@ -321,8 +322,8 @@ Version Date: 2023-01-04 V1.0
             %let i = %eval(&i + 1);
         %end;
     %end;
-
-
+    
+    
     /*DEL_TEMP_DATA*/
     %if %superq(del_temp_data) ^= TRUE and %superq(del_temp_data) ^= FALSE %then %do;
         %put ERROR: 参数 DEL_TEMP_DATA 必须是 TRUE 或 FALSE！;
@@ -386,24 +387,24 @@ Version Date: 2023-01-04 V1.0
         weight n /zeros;
         output out = temp_ci binomial;
     quit;
-
+    
     /*5. 根据是否指定校正方法以及校正条件，提取率及其置信区间*/
-    proc sql noprint;
-        select _BIN_ format = 16.14 into :RATE from temp_ci;
-        select L_BIN format = 16.14 into :LCLM from temp_ci;
-        select U_BIN format = 16.14 into :UCLM from temp_ci;
-    quit;
-    %if %bquote(&adjust_method) ^= #NULL %then %do; /*指定了校正方法*/
-        proc sql noprint;
-            %if %sysevalf(%unquote(&adjust_threshold_cond_expr)) %then %do;
-                %put NOTE: 校正条件 %unquote(&adjust_threshold_cond_expr) 成立，将使用 &adjust_method 法对置信区间进行校正！;
+    %let is_adjust_threshold_met = FALSE;
+    data temp_ci_adjust;
+        set temp_ci;
+        RATE = _BIN_;
+        LCLM = L_BIN;
+        UCLM = U_BIN;
+        %if %bquote(&adjust_method) ^= #NULL %then %do; /*指定了校正方法*/
+            if %bquote(&adjust_threshold_cond_expr) then do;
                 /*校正条件满足，提取校正方法计算的置信区间*/
-                select _BIN_ format = &RATE_format into :RATE_FMT from temp_ci;
+                call symputx("is_adjust_threshold_met", "TRUE");
+                RATE_FMT = put(_BIN_, &RATE_format);
                 %if %bquote(&adjust_method) = CP or 
                     %bquote(&adjust_method) = CLOPPERPEARSON or 
                     %bquote(&adjust_method) = EXACT %then %do;
-                    select XL_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-                    select XU_BIN format = &UCLM_format into :UCLM_FMT from temp_ci;
+                    LCLM_FMT = put(XL_BIN, &LCLM_format);
+                    UCLM_FMT = put(XU_BIN, &UCLM_format);
                 %end;
                 %else %if %bquote(&adjust_method) = WILSON or
                           %bquote(&adjust_method) = WILSONC or
@@ -411,73 +412,76 @@ Version Date: 2023-01-04 V1.0
                           %bquote(&adjust_method) = SCORE or
                           %bquote(&adjust_method) = SCOREC or
                           %bquote(&adjust_method) = %bquote(SCORE(CORRECT)) %then %do;
-                    select L_W_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-                    select U_W_BIN format = &UCLM_format into :UCLM_FMT from temp_ci;
+                    LCLM_FMT = put(L_W_BIN, &LCLM_format);
+                    UCLM_FMT = put(U_W_BIN, &UCLM_format);
                 %end;
                 %else %if %bquote(&adjust_method) = AC or
                           %bquote(&adjust_method) = AGRESTICOULL %then %do;
-                    select L_AC_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-                    select U_AC_BIN format = &UCLM_format into :UCLM_FMT from temp_ci;
+                    LCLM_FMT = put(L_AC_BIN, &LCLM_format);
+                    UCLM_FMT = put(U_AC_BIN, &UCLM_format);
                 %end;
                 %else %if %bquote(&adjust_method) = BLAKER %then %do;
-                    select L_BK_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-                    select U_BK_BIN format = &UCLM_format into :UCLM_FMT from temp_ci;
+                    LCLM_FMT = put(L_BK_BIN, &LCLM_format);
+                    UCLM_FMT = put(U_BK_BIN, &UCLM_format);
                 %end;
                 %else %if %bquote(&adjust_method) = J or
                           %bquote(&adjust_method) = JEFFREYS %then %do;
-                    select L_J_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-                    select U_J_BIN format = &UCLM_format into :UCLM_FMT from temp_ci;
+                    LCLM_FMT = put(L_J_BIN, &LCLM_format);
+                    UCLM_FMT = put(U_J_BIN, &UCLM_format);
                 %end;
                 %else %if %bquote(&adjust_method) = LOG or
                           %bquote(&adjust_method) = LOGIT %then %do;
-                    select L_LG_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-                    select U_LG_BIN format = &UCLM_format into :UCLM_FMT from temp_ci;
+                    LCLM_FMT = put(L_LG_BIN, &LCLM_format);
+                    UCLM_FMT = put(U_LG_BIN, &UCLM_format);
                 %end;
                 %else %if %bquote(&adjust_method) = LR or
                           %bquote(&adjust_method) = LIKELIHOODRATIO %then %do;
-                    select L_LR_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-                    select U_LR_BIN format = &UCLM_format into :UCLM_FMT from temp_ci;
+                    LCLM_FMT = put(L_LR_BIN, &LCLM_format);
+                    UCLM_FMT = put(U_LR_BIN, &UCLM_format);
                 %end;
                 %else %if %bquote(&adjust_method) = MP or
                           %bquote(&adjust_method) = MIDP %then %do;
-                    select L_MP_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-                    select U_MP_BIN format = &LCLM_format into :UCLM_FMT from temp_ci;
+                    LCLM_FMT = put(L_MP_BIN, &LCLM_format);
+                    UCLM_FMT = put(U_MP_BIN, &UCLM_format);
                 %end;
-            %end;
-            %else %do;
+            end;
+            else do;
                 /*校正条件不满足，提取WALD法计算的置信区间*/
-                select _BIN_ format = &RATE_format into :RATE_FMT from temp_ci;
-                select L_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-                select U_BIN format = &UCLM_format into :UCLM_FMT from temp_ci;
-            %end;
-        quit;
+                RATE_FMT = put(_BIN_, &RATE_format);
+                LCLM_FMT = put(L_BIN, &LCLM_format);
+                UCLM_FMT = put(U_BIN, &UCLM_format);
+            end;
+        %end;
+        %else %do; /*未指定校正方法*/
+            RATE_FMT = put(_BIN_, &RATE_format);
+            LCLM_FMT = put(L_BIN, &LCLM_format);
+            UCLM_FMT = put(U_BIN, &UCLM_format);
+        %end;
+    run;
+
+    %if &is_adjust_threshold_met = TRUE %then %do;
+        %put NOTE: 校正条件 &adjust_threshold_cond_expr 满足，将使用 &adjust_method 方法对置信区间进行校正！;
     %end;
-    %else %do; /*未指定校正方法*/
-        proc sql noprint;
-            select _BIN_ format = &RATE_format into :RATE_FMT from temp_ci;
-            select L_BIN format = &LCLM_format into :LCLM_FMT from temp_ci;
-            select U_BIN format = &UCLM_format into :UCLM_FMT from temp_ci;
-        quit;
-    %end;
-    %let rate_and_ci = %bquote(%sysfunc(strip(&RATE_FMT))(%sysfunc(strip(&LCLM_FMT)), %sysfunc(strip(&UCLM_FMT))));
 
 
     /*6. 构建输出数据集*/
     %temp_out:
     proc sql noprint;
-        create table temp_out (item char(200),
-                               n num,
-                               pos_n num,
-                               neg_n num,
-                               rate num,
-                               rate_fmt char(200),
-                               lclm num,
-                               lclm_fmt char(200),
-                               uclm num,
-                               uclm_fmt char(200),
-                               value char(200));
-        insert into temp_out
-            values(%unquote(&stat_note_quote), %eval(&pos_n + &neg_n), &pos_n, &neg_n, &rate, "&rate_fmt", &lclm, "&lclm_fmt", &uclm, "&uclm_fmt", "&rate_and_ci");
+        create table temp_out as
+            select
+                %unquote(&stat_note_quote)  as item,
+                &pos_n + &neg_n             as n,
+                &pos_n                      as pos_n,
+                &neg_n                      as neg_n,
+                rate                        as rate,
+                rate_fmt                    as rate_fmt,
+                lclm                        as lclm,
+                lclm_fmt                    as lclm_fmt,
+                uclm                        as uclm,
+                uclm_fmt                    as uclm_fmt,
+                strip(rate_fmt) || '(' || strip(lclm_fmt) || ', ' || strip(uclm_fmt) || ')'
+                                            as value
+            from temp_ci_adjust;
     quit;
 
 
@@ -499,6 +503,7 @@ Version Date: 2023-01-04 V1.0
             delete temp_indata
                    temp_freq
                    temp_ci
+                   temp_ci_adjust
                    temp_out
                    ;
         quit;
