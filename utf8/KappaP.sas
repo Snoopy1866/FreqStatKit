@@ -664,7 +664,7 @@ Version Date: 2023-01-13 V1.0
     %temp_out:
     proc sql noprint;
         create table temp_out (item char(200), value char(200));
-        insert into temp_out values(&stat_note_quote, "&kappap");
+        insert into temp_out values(%unquote(&stat_note_quote), "&kappap");
     quit;
     
 

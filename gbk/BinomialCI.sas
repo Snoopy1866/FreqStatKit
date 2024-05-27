@@ -477,7 +477,7 @@ Version Date: 2023-01-04 V1.0
                                uclm_fmt char(200), 
                                value char(200));
         insert into temp_out
-            values(&stat_note_quote, %eval(&pos_n + &neg_n), &pos_n, &neg_n, &rate, "&rate_fmt", &lclm, "&lclm_fmt", &uclm, "&uclm_fmt", "&rate_and_ci");
+            values(%unquote(&stat_note_quote), %eval(&pos_n + &neg_n), &pos_n, &neg_n, &rate, "&rate_fmt", &lclm, "&lclm_fmt", &uclm, "&uclm_fmt", "&rate_and_ci");
     quit;
 
 
