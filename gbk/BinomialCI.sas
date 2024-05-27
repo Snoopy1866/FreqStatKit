@@ -154,7 +154,7 @@ Version Date: 2023-01-04 V1.0
         %put NOTE: 输出数据集被指定为 &libname_out..&memname_out;
     %end;
 
-    
+
     /*WEIGHT*/
     %if %superq(weight) ^= #NULL %then %do;
         %let reg_weight_id = %sysfunc(prxparse(%bquote(/^[A-Za-z_][A-Za-z_\d]*$/)));
@@ -321,8 +321,8 @@ Version Date: 2023-01-04 V1.0
             %let i = %eval(&i + 1);
         %end;
     %end;
-    
-    
+
+
     /*DEL_TEMP_DATA*/
     %if %superq(del_temp_data) ^= TRUE and %superq(del_temp_data) ^= FALSE %then %do;
         %put ERROR: 参数 DEL_TEMP_DATA 必须是 TRUE 或 FALSE！;
@@ -386,7 +386,7 @@ Version Date: 2023-01-04 V1.0
         weight n /zeros;
         output out = temp_ci binomial;
     quit;
-    
+
     /*5. 根据是否指定校正方法以及校正条件，提取率及其置信区间*/
     proc sql noprint;
         select _BIN_ format = 16.14 into :RATE from temp_ci;
@@ -466,15 +466,15 @@ Version Date: 2023-01-04 V1.0
     %temp_out:
     proc sql noprint;
         create table temp_out (item char(200),
-                               n num, 
-                               pos_n num, 
-                               neg_n num, 
-                               rate num, 
-                               rate_fmt char(200), 
-                               lclm num, 
-                               lclm_fmt char(200), 
-                               uclm num, 
-                               uclm_fmt char(200), 
+                               n num,
+                               pos_n num,
+                               neg_n num,
+                               rate num,
+                               rate_fmt char(200),
+                               lclm num,
+                               lclm_fmt char(200),
+                               uclm num,
+                               uclm_fmt char(200),
                                value char(200));
         insert into temp_out
             values(%unquote(&stat_note_quote), %eval(&pos_n + &neg_n), &pos_n, &neg_n, &rate, "&rate_fmt", &lclm, "&lclm_fmt", &uclm, "&uclm_fmt", "&rate_and_ci");
