@@ -384,7 +384,7 @@ FORMAT = %str(#RATE = 5.3 #CLM = percentn9.2)
 **Usage** :
 
 ```sas
-PLACEHOLDER = %str(不适用)
+PLACEHOLDER = '不适用'
 ```
 
 [Example](#指定无法计算构成比率及置信区间时显示的字符串)
@@ -554,7 +554,7 @@ run;
             adjust_method = cp,
             adjust_threshold = %str(#RATE >= 0.9 or #LCLM <= 0),
             format = %str(#RATE = percentn11.4 #CLM = 5.3 #UCLM = dollar20.3),
-            placeholder = %str(%%%%));
+            placeholder = '%%');
 ```
 
 ![](./assets/example-7.png)
