@@ -4,6 +4,7 @@ Macro Name: Riskdiff
 Macro Label: 两组率差及其置信区间
 Author: wtwang
 Version Date: 2024-05-10 V1.0
+              2024-06-27 V1.1
 ===================================
 */
 
@@ -339,18 +340,23 @@ Version Date: 2024-05-10 V1.0
     %end;
 
     /*3. 调用 PROC FREQ 计算率差及其置信区间*/
+    data tmp_base;
+        n11 = &n11; n12 = &n12; n10 = &n10;
+        n21 = &n21; n22 = &n22; n20 = &n20;
+        alpha = &alpha;
+
+        p1    = n11/n10;
+        p2    = n21/n20;
+        pdiff = p1 - p2;
+        z    = probit(1 - alpha/2);
+    run;
+
     %if &method_base = NEWCOMBE %then %do;
         %let is_formula_delta_lt_0 = FALSE;
 
-        data tmp_pdiffcls;
-            n11 = &n11; n12 = &n12; n10 = &n10;
-            n21 = &n21; n22 = &n22; n20 = &n20;
-            alpha = &alpha;
+        data tmp_results;
+            set tmp_base;
 
-            p1    = n11/n10;
-            p2    = n21/n20;
-            pdiff = p1 - p2;
-            z    = probit(1 - alpha/2);
             %if &method_adjust = %bquote() %then %do;
                 p1_lower   = min(p1, (2*n11 + z**2 - z*sqrt(z**2 + 4*n12*p1)) / (2*(n10 + z**2)));
                 p1_upper   = max(p1, (2*n11 + z**2 + z*sqrt(z**2 + 4*n12*p1)) / (2*(n10 + z**2)));
@@ -371,13 +377,9 @@ Version Date: 2024-05-10 V1.0
                 p2_lower   = min(p2, (2*n21 + z**2 - 1 - z*sqrt(z**2 - 2 - 1/n20 + 4*(n22 + 1)*p2)) / (2*(n20 + z**2)));
                 p2_upper   = max(p2, (2*n21 + z**2 + 1 + z*sqrt(z**2 + 2 - 1/n20 + 4*(n22 - 1)*p2)) / (2*(n20 + z**2)));
             %end;
-            pdiff_lower = p1 - p2 - sqrt((p1 - p1_lower)**2 + (p2 - p2_upper)**2);
-            pdiff_upper = p1 - p2 + sqrt((p2 - p2_lower)**2 + (p1 - p1_upper)**2);
 
-            /*复制结果到新的变量名，与 ODS OUTPUT 输出数据集的变量名保持一致*/
-            RiskDifference = pdiff;
-            LowerCL        = pdiff_lower;
-            UpperCL        = pdiff_upper;
+            LowerCL = p1 - p2 - sqrt((p1 - p1_lower)**2 + (p2 - p2_upper)**2);
+            UpperCL = p1 - p2 + sqrt((p2 - p2_lower)**2 + (p1 - p1_upper)**2);
         run;
 
         %if &is_formula_delta_lt_0 = TRUE %then %do;
@@ -388,7 +390,8 @@ Version Date: 2024-05-10 V1.0
     %end;
     %else %do;
         ods html close;
-        ods output PdiffCLs = tmp_pdiffcls(keep = RiskDifference LowerCL UpperCL);
+        ods output PdiffCLs     = tmp_pdiffcls(keep = LowerCL UpperCL)
+                   RiskDiffCol1 = tmp_riskdiffcol1;
         proc freq data = tmp_indata_freq;
             tables rown*coln / riskdiff(cl = &method) alpha = &alpha;
             %if &method_base = EXACT %then %do;
@@ -397,20 +400,35 @@ Version Date: 2024-05-10 V1.0
             weight freq / zeros;
         run;
         ods html;
+
+        data tmp_results;
+            merge tmp_base
+                  %if &method_base = EXACT %then %do;
+                      tmp_riskdiffcol1(firstobs = 1 obs = 1 keep = ExactLowerCL ExactUpperCL rename = (ExactLowerCL = p1_lower ExactUpperCL = p1_upper))
+                      tmp_riskdiffcol1(firstobs = 2 obs = 2 keep = ExactLowerCL ExactUpperCL rename = (ExactLowerCL = p2_lower ExactUpperCL = p2_upper))
+                  %end;
+                  %else %do;
+                      tmp_riskdiffcol1(firstobs = 1 obs = 1 keep = LowerCL UpperCL rename = (LowerCL = p1_lower UpperCL = p1_upper))
+                      tmp_riskdiffcol1(firstobs = 2 obs = 2 keep = LowerCL UpperCL rename = (LowerCL = p2_lower UpperCL = p2_upper))
+                  %end;
+                  tmp_pdiffcls;
+        run;
     %end;
 
     /*4. 构建输出数据集*/
     proc sql noprint;
-        select RiskDifference format = &format into : RiskDifference trimmed from tmp_pdiffcls;
-        select LowerCL        format = &format into : LowerCL        trimmed from tmp_pdiffcls;
-        select UpperCL        format = &format into : UpperCL        trimmed from tmp_pdiffcls;
+        select Pdiff   format = &format into : Pdiff   trimmed from tmp_results;
+        select LowerCL format = &format into : LowerCL trimmed from tmp_results;
+        select UpperCL format = &format into : UpperCL trimmed from tmp_results;
     quit;
 
     data tmp_outdata;
         item = %unquote(&stat_note_quote);
 
-        set tmp_pdiffcls;
-        value = "&RiskDifference(&LowerCL, &UpperCL)";
+        set tmp_results;
+        value = "&Pdiff(&LowerCL, &UpperCL)";
+
+        attrib _all_ label = "";
     run;
 
 
@@ -431,7 +449,10 @@ Version Date: 2024-05-10 V1.0
         proc datasets noprint nowarn;
             delete tmp_indata
                    tmp_indata_freq
+                   tmp_base
+                   tmp_riskdiffcol1
                    tmp_pdiffcls
+                   tmp_results
                    tmp_outdata
                    ;
         quit;
